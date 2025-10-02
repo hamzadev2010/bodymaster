@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Period {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+}
+
+model Client {
+  id                 Int             @id @default(autoincrement())
+  fullName           String
+  firstName          String?
+  lastName           String?
+  email              String?         @unique
+  phone              String?
+  notes              String?
+  dateOfBirth        DateTime?
+  nationalId         String?
+  registrationDate   DateTime?       @default(now())
+  subscriptionPeriod Period?
+  hasPromotion       Boolean         @default(false)
+  promotionPeriod    Period?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  deletedAt          DateTime?
+  history            ClientHistory[]
+  payments           Payment[]
+  presences          Presence[]
+}
+
+model Coach {
+  id                 Int            @id @default(autoincrement())
+  fullName           String
+  specialty          String?
+  email              String?        @unique
+  phone              String?
+  notes              String?
+  dateOfBirth        DateTime?
+  nationalId         String?
+  registrationDate   DateTime?      @default(now())
+  subscriptionPeriod Period?
+  hasPromotion       Boolean        @default(false)
+  promotionPeriod    Period?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  deletedAt          DateTime?
+  history            CoachHistory[]
+}
+
+model Promotion {
+  id                 Int                @id @default(autoincrement())
+  name               String
+  notes              String?
+  fixedPrice         Float
+  subscriptionMonths Int?
+  startDate          DateTime
+  endDate            DateTime?
+  active             Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  deletedAt          DateTime?
+  history            PromotionHistory[]
+  payments           Payment[]
+}
+
+model ClientHistory {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  action    String
+  changes   String?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model CoachHistory {
+  id        Int      @id @default(autoincrement())
+  coachId   Int
+  action    String
+  changes   String?
+  createdAt DateTime @default(now())
+  coach     Coach    @relation(fields: [coachId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                 Int              @id @default(autoincrement())
+  clientId           Int
+  promotionId        Int?
+  amount             Float
+  paymentDate        DateTime         @default(now())
+  nextPaymentDate    DateTime
+  subscriptionPeriod Period
+  notes              String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  deletedAt          DateTime?
+  client             Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  promotion          Promotion?       @relation(fields: [promotionId], references: [id])
+  history            PaymentHistory[]
+}
+
+model PromotionHistory {
+  id          Int       @id @default(autoincrement())
+  promotionId Int
+  action      String
+  changes     String?
+  createdAt   DateTime  @default(now())
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+}
+
+model PaymentHistory {
+  id        Int      @id @default(autoincrement())
+  paymentId Int
+  action    String
+  changes   String?
+  createdAt DateTime @default(now())
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+}
+
+model Presence {
+  id        Int      @id @default(autoincrement())
+  clientId  Int
+  time      DateTime @default(now())
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@index([time])
+}
