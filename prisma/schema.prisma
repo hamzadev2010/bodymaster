@@ -1,12 +1,11 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma schema for Postgres (Supabase)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -45,20 +44,20 @@ model Client {
 }
 
 model Coach {
-  id                 Int            @id @default(autoincrement())
+  id                 Int             @id @default(autoincrement())
   fullName           String
   specialty          String?
-  email              String?        @unique
+  email              String?         @unique
   phone              String?
   notes              String?
   dateOfBirth        DateTime?
   nationalId         String?
-  registrationDate   DateTime?      @default(now())
+  registrationDate   DateTime?       @default(now())
   subscriptionPeriod Period?
-  hasPromotion       Boolean        @default(false)
+  hasPromotion       Boolean         @default(false)
   promotionPeriod    Period?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
   deletedAt          DateTime?
   history            CoachHistory[]
 }
