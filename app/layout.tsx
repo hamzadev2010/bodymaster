@@ -29,8 +29,6 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
-        {/* Load Tailwind via CDN to ensure utilities are available even if build plugin isn't */}
-        <script src="https://cdn.tailwindcss.com"></script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AppShell>{children}</AppShell>
