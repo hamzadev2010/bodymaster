@@ -26,13 +26,61 @@ function parseDateLoose(input: DateInput): Date | null {
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, { params }: Params) {
-  const { id: idStr } = await params;
-  const id = Number(idStr);
-  const includeDeleted = new URL(req.url).searchParams.get("includeDeleted") === "1";
-  const client = await prisma.client.findUnique({ where: { id } });
-  if (!includeDeleted && client?.deletedAt) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  if (!client) return NextResponse.json({ message: "Not found" }, { status: 404 });
-  return NextResponse.json(client);
+  try {
+    const { id: idStr } = await params;
+    
+    // Validate id parameter
+    if (!idStr || typeof idStr !== 'string') {
+      return NextResponse.json({ error: "Client ID is required" }, { status: 400 });
+    }
+    
+    const id = Number(idStr);
+    
+    // Check if id is a valid number
+    if (isNaN(id) || !Number.isInteger(id) || id <= 0) {
+      return NextResponse.json({ error: "Invalid client ID" }, { status: 400 });
+    }
+    
+    const includeDeleted = new URL(req.url).searchParams.get("includeDeleted") === "1";
+    
+    const client = await prisma.client.findUnique({ 
+      where: { id },
+      include: {
+        history: {
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        },
+        payments: {
+          orderBy: { paymentDate: 'desc' },
+          take: 5
+        },
+        presences: {
+          orderBy: { time: 'desc' },
+          take: 10
+        }
+      }
+    });
+    
+    if (!client) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+    
+    if (!includeDeleted && client.deletedAt) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+    
+    return NextResponse.json(client);
+  } catch (error) {
+    console.error('GET /api/clients/[id] error:', error);
+    
+    // Handle database connection errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      return NextResponse.json({ error: "Database connection error" }, { status: 503 });
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
 }
 
 export async function PUT(request: Request, { params }: Params) {

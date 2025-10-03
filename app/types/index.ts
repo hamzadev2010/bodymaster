@@ -24,11 +24,61 @@ export interface DatabaseWhereClause {
   [key: string]: unknown;
 }
 
+// Client types
+export interface Client {
+  id: number;
+  fullName: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  notes?: string | null;
+  dateOfBirth?: Date | null;
+  nationalId?: string | null;
+  registrationDate?: Date | null;
+  subscriptionPeriod?: string | null;
+  hasPromotion?: boolean;
+  promotionPeriod?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date | null;
+}
+
+// Payment types
+export interface Payment {
+  id: number;
+  clientId: number;
+  amount: number;
+  paymentDate: Date;
+  nextPaymentDate: Date;
+  subscriptionPeriod: string;
+  notes?: string | null;
+  currency?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Client History types
+export interface ClientHistory {
+  id: number;
+  clientId: number;
+  action: string;
+  changes?: string | null;
+  createdAt: Date;
+}
+
 // Presence entry types
 export interface PresenceEntry {
   id: number;
   clientId: number;
   time: Date;
+}
+
+export interface Presence {
+  id: number;
+  clientId: number;
+  time: Date;
+  createdAt: Date;
 }
 
 export interface PresenceWithClient {
