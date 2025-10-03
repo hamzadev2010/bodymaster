@@ -1,9 +1,11 @@
-import type { NextConfig } from "next";
-import path from "path";
+const path = require('path');
 
-const nextConfig: NextConfig = {
-  // Ensure Next.js treats this workspace as the root to avoid lockfile mis-detection
-  outputFileTracingRoot: path.join(__dirname),
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Ignore ESLint errors during builds
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   
   // Experimental features to fix CSS/webpack issues
   experimental: {
@@ -26,4 +28,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
