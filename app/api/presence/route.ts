@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
-import type { DatabaseWhereClause } from "@/app/types";
+import type { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     }
   } catch {}
 
-  const where: DatabaseWhereClause = {};
+  const where: Prisma.PresenceWhereInput = {};
   if (start && end) where.time = { gte: start, lt: end };
 
   try {

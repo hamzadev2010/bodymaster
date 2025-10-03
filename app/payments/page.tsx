@@ -339,7 +339,7 @@ export default function PaymentsPage() {
     }
   }
 
-  async function removePayment(id: number) {
+  async function _removePayment(id: number) {
     if (!confirm("Confirmer la suppression de ce paiement ?")) return;
     const res = await fetch(`/api/payments/${id}`, { method: "DELETE" });
     if (!res.ok) {

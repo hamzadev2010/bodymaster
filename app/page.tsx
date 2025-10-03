@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/app/i18n/I18nProvider";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,10 +61,13 @@ export default function LoginPage() {
           <div className={`text-center mb-12 transition-all duration-1000 relative z-20 flex flex-col items-center ${introComplete ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-8'}`}>
             <div className="relative mb-8">
               <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full blur-2xl opacity-40 animate-pulse scale-150"></div>
-              <img 
+              <Image 
                 src="/images/logo.png" 
                 alt="BODY MASTER Logo" 
+                width={160}
+                height={160}
                 className="relative w-40 h-40 mx-auto object-contain animate-logo-glow"
+                priority
               />
             </div>
             <div className="relative inline-block px-12 py-6 bg-black/60 backdrop-blur-md rounded-3xl border-2 border-yellow-400/60 shadow-[0_0_30px_rgba(251,191,36,0.3)] hover:border-yellow-400 hover:shadow-[0_0_50px_rgba(251,191,36,0.5)] transition-all duration-500">

@@ -11,7 +11,7 @@ function parseDateLoose(input: DateInput): Date | null {
     if (!raw) return null;
     const m1 = raw.match(/^([0-3]?\d)\/([0-1]?\d)\/(\d{4})$/);
     if (m1) {
-      const [_, d, m, y] = m1;
+      const [_match, d, m, y] = m1;
       const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
       const dt = new Date(iso);
       return isNaN(dt.getTime()) ? null : dt;

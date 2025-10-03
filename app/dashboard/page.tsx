@@ -29,7 +29,7 @@ export default function DashboardPage() {
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<"DAY" | "MONTH" | "YEAR">("DAY");
-  const [newUsersRange, setNewUsersRange] = useState<"MONTH" | "YEAR">("MONTH");
+  const [_newUsersRange, _setNewUsersRange] = useState<"MONTH" | "YEAR">("MONTH");
   const [selectedRevenueDay, setSelectedRevenueDay] = useState<string>(() => new Date().toISOString().slice(0,10));
   const [presence, setPresence] = useState<PresenceEntry[]>([]);
   const [presenceRange, setPresenceRange] = useState<"DAY" | "MONTH" | "YEAR">("DAY");
@@ -77,7 +77,7 @@ export default function DashboardPage() {
     let revenueYear = 0;
 
     const now = new Date();
-    const startOfDay = new Date(selectedRevenueDay + "T00:00:00.000Z");
+    const _startOfDay = new Date(selectedRevenueDay + "T00:00:00.000Z");
     const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
     const startOfYear = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
 
@@ -277,7 +277,7 @@ function KpiCard({ title, value }: { title: string; value: string }) {
   );
 }
 
-function MiniStat({ label, value, color }: { label: string; value: number | string; color?: string }) {
+function _MiniStat({ label, value, color }: { label: string; value: number | string; color?: string }) {
   return (
     <div className="rounded-lg border border-yellow-300 bg-white p-3">
       <div className="text-[10px] uppercase tracking-wide text-slate-600">{label}</div>

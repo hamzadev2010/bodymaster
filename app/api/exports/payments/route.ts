@@ -19,6 +19,7 @@ function enumPeriodLabel(period: "MONTHLY" | "QUARTERLY" | "ANNUAL"): string {
 
 function isDailyPass(paymentDate: DateInput, nextPaymentDate: DateInput): boolean {
   try {
+    if (!paymentDate || !nextPaymentDate) return false;
     const start = new Date(paymentDate);
     const next = new Date(nextPaymentDate);
     if (isNaN(start.getTime()) || isNaN(next.getTime())) return false;

@@ -49,7 +49,7 @@ export default function ClientsPage() {
   const [openDetail, setOpenDetail] = useState<Client | null>(null);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Client | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
+  const _printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     void (async () => {

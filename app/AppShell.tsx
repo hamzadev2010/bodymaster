@@ -6,6 +6,7 @@ import { I18nProvider, useI18n } from "@/app/i18n/I18nProvider";
 import { languages } from "@/app/i18n/config";
 import { CurrencyProvider, useCurrency } from "@/app/lib/CurrencyProvider";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
+import Image from "next/image";
 
 function Nav() {
   const { t, lang, setLang, dir } = useI18n();
@@ -92,9 +93,11 @@ function Nav() {
       <nav className="sticky top-0 z-40 border-b border-yellow-300 bg-white/90 text-slate-800 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <img 
+            <Image 
               src="/images/logo.png" 
               alt="BODY MASTER Logo" 
+              width={64}
+              height={64}
               className="w-16 h-16 object-contain"
             />
             <a href="/dashboard" className="text-sm font-extrabold tracking-tight text-amber-700 hover:text-amber-800 transition-colors">BODY MASTER</a>

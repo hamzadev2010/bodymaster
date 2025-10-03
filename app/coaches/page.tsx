@@ -87,7 +87,7 @@ export default function CoachesPage() {
     }
   }
 
-  async function remove(id: number) {
+  async function _remove(id: number) {
     if (!confirm("Confirmer la suppression de ce coach ?")) return;
     await fetch(`/api/coaches/${id}`, { method: "DELETE" });
     setCoaches((prev) => prev.filter((c) => c.id !== id));
@@ -243,8 +243,8 @@ function CoachForm({ initial, onSubmit }: { initial?: Partial<Coach>; onSubmit: 
 }
 
 function AttestationModal({ coach, onClose }: { coach: Coach | null; onClose: () => void }) {
-  if (!coach) return null;
   const { t } = useI18n();
+  if (!coach) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
