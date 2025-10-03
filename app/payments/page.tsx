@@ -310,8 +310,9 @@ export default function PaymentsPage() {
       setPromotionId("");
       setManualMonths("");
       setDailyPass(false);
-    } catch (error: any) {
-      alert(error?.message || "Erreur lors de l'enregistrement du paiement");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de l'enregistrement du paiement";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -332,8 +333,9 @@ export default function PaymentsPage() {
       const updated: Payment = await res.json();
       setPayments((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       setEditing(null);
-    } catch (e: any) {
-      alert(e?.message || "Erreur lors de la mise à jour");
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Erreur lors de la mise à jour";
+      alert(errorMessage);
     }
   }
 
@@ -547,7 +549,7 @@ export default function PaymentsPage() {
             <span className="mb-1 block text-sm font-semibold label-title">Client</span>
             <select
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-gray-900 disabled:bg-neutral-100 disabled:text-neutral-400"
-              value={clientId as any}
+              value={clientId.toString()}
               onChange={(e) => {
                 const val = e.target.value ? Number(e.target.value) : "";
                 setClientId(val);
@@ -572,7 +574,7 @@ export default function PaymentsPage() {
             <span className="mb-1 block text-sm font-semibold label-title">Promotion (optionnel)</span>
             <select
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-gray-900 disabled:bg-neutral-100 disabled:text-neutral-400"
-              value={promotionId as any}
+              value={promotionId.toString()}
               onChange={(e) => {
                 const val = e.target.value ? Number(e.target.value) : "";
                 setPromotionId(val);
@@ -600,7 +602,7 @@ export default function PaymentsPage() {
           </label>
 
           <label className="text-sm">
-            <span className="mb-1 block text-sm font-semibold label-title">Période d'abonnement</span>
+            <span className="mb-1 block text-sm font-semibold label-title">Période d&apos;abonnement</span>
             <select
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-gray-900 disabled:bg-neutral-100 disabled:text-neutral-400"
               value={subscriptionPeriod}

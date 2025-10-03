@@ -70,7 +70,7 @@ export default function PromotionsPage() {
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error((err as any)?.error || `HTTP ${res.status}`);
+          throw new Error((err as { error?: string })?.error || `HTTP ${res.status}`);
         }
         const updated = await res.json();
         setPromotions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
@@ -82,23 +82,19 @@ export default function PromotionsPage() {
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error((err as any)?.error || `HTTP ${res.status}`);
+          throw new Error((err as { error?: string })?.error || `HTTP ${res.status}`);
         }
         const created = await res.json();
         setPromotions((prev) => [created, ...prev]);
       }
       setOpen(false);
       setEditing(null);
-    } catch (e: any) {
-      alert(e?.message || "Erreur lors de l'enregistrement de la promotion");
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Erreur lors de l'enregistrement de la promotion";
+      alert(errorMessage);
     }
   }
 
-  async function remove(id: number) {
-    if (!confirm("Confirmer la suppression de cette promotion ?")) return;
-    await fetch(`/api/promotions/${id}`, { method: "DELETE" });
-    setPromotions((prev) => prev.filter((p) => p.id !== id));
-  }
 
   return (
     <RequireAuth>

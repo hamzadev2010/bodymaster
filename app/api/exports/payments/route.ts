@@ -57,31 +57,6 @@ export async function GET(request: Request) {
       start = new Date(Date.UTC(y, 0, 1, 0, 0, 0));
       end = new Date(Date.UTC(y + 1, 0, 1, 0, 0, 0));
     }
-
-function enumPeriodLabel(period: "MONTHLY" | "QUARTERLY" | "ANNUAL"): string {
-  switch (period) {
-    case "MONTHLY":
-      return "Mensuel";
-    case "QUARTERLY":
-      return "3 mois";
-    case "ANNUAL":
-      return "Annuel";
-    default:
-      return String(period || "");
-  }
-}
-
-function isDailyPass(paymentDate: any, nextPaymentDate: any): boolean {
-  try {
-    const start = new Date(paymentDate);
-    const next = new Date(nextPaymentDate);
-    if (isNaN(start.getTime()) || isNaN(next.getTime())) return false;
-    const diffDays = (next.getTime() - start.getTime()) / (24 * 60 * 60 * 1000);
-    return Math.abs(diffDays - 1) < 0.01; // allow small timezone rounding
-  } catch {
-    return false;
-  }
-}
   } catch {}
 
   const where: any = { deletedAt: null };

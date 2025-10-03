@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   
   // Experimental features to fix CSS/webpack issues
   experimental: {
-    esmExternals: 'loose',
+    // esmExternals: 'loose', // Removed as it's not recommended
   },
   
   // Webpack configuration to handle CSS properly
