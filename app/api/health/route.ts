@@ -9,7 +9,7 @@ export async function GET() {
     await prisma.$queryRaw`SELECT 1`;
 
     // List tables (SQLite-specific)
-    const tables = (await prisma.$queryRawUnsafe<any[]>(
+    const tables = (await prisma.$queryRawUnsafe<{ name: string }[]>(
       "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
     )).map((r) => r.name);
 
@@ -17,10 +17,11 @@ export async function GET() {
     const counts: Record<string, number | string> = {};
     const tryCount = async (name: string) => {
       try {
-        const row = await prisma.$queryRawUnsafe<any[]>(`SELECT COUNT(*) as c FROM ${name} LIMIT 1`);
+        const row = await prisma.$queryRawUnsafe<{ c: number }[]>(`SELECT COUNT(*) as c FROM ${name} LIMIT 1`);
         counts[name] = Number(row?.[0]?.c ?? 0);
-      } catch (e: any) {
-        counts[name] = `err: ${e?.message || e}`;
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        counts[name] = `err: ${errorMessage}`;
       }
     };
     for (const t of ["Client", "Coach", "Payment", "Promotion", "Presence", "ClientHistory", "CoachHistory", "PaymentHistory"]) {
@@ -32,8 +33,9 @@ export async function GET() {
       hints.push("Table Presence manquante: exécutez les migrations Prisma");
     }
     return NextResponse.json({ ok: true, databaseUrl: process.env.DATABASE_URL, tables, counts, hints });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || "unknown" }, { status: 500 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "unknown";
+    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
   }
 }
 

@@ -7,9 +7,10 @@ export async function GET() {
   try {
     const promotions = await prisma.promotion.findMany({ orderBy: { createdAt: "desc" } });
     return NextResponse.json(promotions);
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("GET /api/promotions error:", e);
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+    const errorMessage = e instanceof Error ? e.message : "Server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -61,8 +62,9 @@ export async function POST(request: Request) {
       console.warn("POST /api/promotions history log failed:", histErr);
     }
     return NextResponse.json(created, { status: 201 });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("POST /api/promotions error:", e);
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+    const errorMessage = e instanceof Error ? e.message : "Server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

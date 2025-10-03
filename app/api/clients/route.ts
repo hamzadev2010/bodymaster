@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
+import type { DateInput } from "@/app/types";
+
 export const runtime = "nodejs";
 
-function parseDateLoose(input: any): Date | null {
+function parseDateLoose(input: DateInput): Date | null {
   if (!input) return null;
   try {
     const raw = String(input).trim();
@@ -36,7 +38,7 @@ function sanitize(input: unknown, { max = 120, pattern }: { max?: number; patter
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const includeDeleted = searchParams.get("includeDeleted") === "1";
-  const where = includeDeleted ? {} : { deletedAt: null } as any;
+  const where = includeDeleted ? {} : { deletedAt: null };
   const clients = await prisma.client.findMany({ where, orderBy: { createdAt: "desc" } });
   return NextResponse.json(clients);
 }
@@ -102,7 +104,7 @@ export async function POST(request: Request) {
     } as const;
 
     try {
-      const created = await prisma.client.create({ data: payload as any });
+      const created = await prisma.client.create({ data: payload });
       try {
         await prisma.clientHistory.create({
           data: { clientId: created.id, action: "CREATE", changes: JSON.stringify(created) },
@@ -111,21 +113,23 @@ export async function POST(request: Request) {
         console.warn("POST /api/clients history log failed:", histErr);
       }
       return NextResponse.json(created, { status: 201 });
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Prisma unique violation (handle array or string meta.target)
-      if (e?.code === "P2002") {
-        const target = e?.meta?.target;
-        const msg = (typeof target === "string" ? target : Array.isArray(target) ? target.join(",") : "") + (e?.message || "");
+      if (e && typeof e === 'object' && 'code' in e && e.code === "P2002") {
+        const target = 'meta' in e && e.meta && typeof e.meta === 'object' && 'target' in e.meta ? e.meta.target : undefined;
+        const message = 'message' in e ? String(e.message) : "";
+        const msg = (typeof target === "string" ? target : Array.isArray(target) ? target.join(",") : "") + message;
         if (msg.toLowerCase().includes("email")) {
           return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
         }
         return NextResponse.json({ error: "Contrainte d'unicité violée" }, { status: 409 });
       }
       console.error("POST /api/clients error:", e);
-      return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+      const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
-  } catch (error: any) {
-    const message = error?.message || "Erreur serveur";
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

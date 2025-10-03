@@ -12,7 +12,8 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!id || !Number.isFinite(id)) return NextResponse.json({ error: "id invalide" }, { status: 400 });
     await prisma.presence.delete({ where: { id } });
     return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -93,8 +93,9 @@ export default function ClientsPage() {
       }
       setOpen(false);
       setEditing(null);
-    } catch (e: any) {
-      alert(e?.message || "Erreur lors de l'enregistrement");
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e.message : "Erreur lors de l'enregistrement";
+      alert(error);
     }
   }
 
@@ -183,7 +184,7 @@ export default function ClientsPage() {
                 let statusEl = <span className="text-xs text-gray-400">—</span>;
                 if (last) {
                   const next = new Date(last.nextPaymentDate).toISOString().slice(0,10);
-                  if (next > todayStr) statusEl = <span className="text-xs font-medium text-green-600">À jour jusqu'au {next}</span>;
+                  if (next > todayStr) statusEl = <span className="text-xs font-medium text-green-600">À jour jusqu&apos;au {next}</span>;
                   else statusEl = <span className="text-xs font-medium text-red-600">À payer (échéance {next})</span>;
                 }
                 return (
@@ -224,7 +225,7 @@ export default function ClientsPage() {
               <p><strong>Inscription:</strong> {openDetail.registrationDate ? new Date(openDetail.registrationDate).toLocaleDateString() : "—"}</p>
               <p><strong>Notes:</strong> {openDetail.notes || "—"}</p>
             </div>
-            <p className="text-xs text-gray-500">L'historique complet des modifications est enregistré côté serveur.</p>
+            <p className="text-xs text-gray-500">L&apos;historique complet des modifications est enregistré côté serveur.</p>
           </div>
         )}
       </Modal>

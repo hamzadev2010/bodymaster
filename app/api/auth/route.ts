@@ -23,7 +23,8 @@ export async function POST(request: Request) {
 
     // Optionally, we could set an httpOnly cookie here; for now client uses localStorage for gating.
     return NextResponse.json({ ok: true, user: { username } }, { status: 200 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

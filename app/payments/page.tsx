@@ -144,7 +144,7 @@ export default function PaymentsPage() {
       }
       if (typeof q === "string") setQuery(q);
     } catch {}
-  }, []);
+  }, [paymentDate]);
 
   useEffect(() => {
     void (async () => {
@@ -392,7 +392,7 @@ export default function PaymentsPage() {
       <header className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-yellow-600">{t("payments.title", "Paiements")}</h1>
-          <p className="mt-1 text-sm text-amber-700">{t("payments.subtitle", "Enregistrer un paiement et consulter l'historique.")}</p>
+          <p className="mt-1 text-sm text-amber-700">{t("payments.subtitle", "Enregistrer un paiement et consulter l&apos;historique.")}</p>
         </div>
       </header>
 
@@ -409,7 +409,7 @@ export default function PaymentsPage() {
             <div className="text-2xl font-extrabold text-green-700">{summary.upToDate}</div>
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="text-xs text-slate-600">{t("payments.summary.due", "Doivent payer (aujourd'hui ou passé)")}</div>
+            <div className="text-xs text-slate-600">{t("payments.summary.due", "Doivent payer (aujourd&apos;hui ou passé)")}</div>
             <div className="text-2xl font-extrabold text-red-700">{summary.dueTodayOrPast}</div>
           </div>
         </div>

@@ -12,9 +12,10 @@ export async function GET(_req: Request, { params }: Params) {
         const promotion = await prisma.promotion.findUnique({ where: { id } });
         if (!promotion) return NextResponse.json({ error: "Not found" }, { status: 404 });
         return NextResponse.json(promotion);
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("GET /api/promotions/[id] error:", e);
-        return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+        const errorMessage = e instanceof Error ? e.message : "Server error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 
@@ -66,9 +67,10 @@ export async function PUT(request: Request, { params }: Params) {
             data: { promotionId: id, action: "UPDATE", changes: JSON.stringify(updated) },
         });
         return NextResponse.json(updated);
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("PUT /api/promotions/[id] error:", e);
-        return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+        const errorMessage = e instanceof Error ? e.message : "Server error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 

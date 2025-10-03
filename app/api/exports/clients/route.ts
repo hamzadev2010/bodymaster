@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
+import type { CSVData, CSVRow, DateInput, DateFormatter, CSVFormatter, CellFormatter, SafeStringFormatter } from "@/app/types";
 
 export const runtime = "nodejs";
 
@@ -8,7 +9,7 @@ export async function GET() {
   const clients = await prisma.client.findMany({
     orderBy: { createdAt: "desc" },
   });
-  const header = [
+  const header: CSVRow = [
     "id",
     "fullName",
     "email",
@@ -18,8 +19,8 @@ export async function GET() {
     "createdAt",
     "updatedAt",
   ];
-  const rows = clients.map((c) => [
-    c.id,
+  const rows: CSVData = clients.map((c: { id: number; fullName: string; email: string | null; phone: string | null; nationalId: string | null; registrationDate: Date | null; createdAt: Date; updatedAt: Date }) => [
+    c.id.toString(),
     safe(c.fullName),
     safe(c.email),
     safe(c.phone),
@@ -38,7 +39,7 @@ export async function GET() {
   });
 }
 
-function toISODate(d: any): string {
+const toISODate: DateFormatter = (d: DateInput): string => {
   try {
     if (!d) return "";
     const dt = new Date(d);
@@ -46,22 +47,22 @@ function toISODate(d: any): string {
   } catch {
     return "";
   }
-}
+};
 
-function toCSV(rows: any[][]): string {
+const toCSV: CSVFormatter = (rows: CSVData): string => {
   return rows
     .map((r) => r.map((cell) => formatCSVCell(cell)).join(","))
     .join("\n");
-}
+};
 
-function formatCSVCell(v: any): string {
+const formatCSVCell: CellFormatter = (v: unknown): string => {
   const s = (v ?? "").toString();
   if (s.includes(",") || s.includes("\n") || s.includes('"')) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
   return s;
-}
+};
 
-function safe(v: any): string {
+const safe: SafeStringFormatter = (v: unknown): string => {
   return (v ?? "").toString().replace(/[\r\n]+/g, " ").trim();
-}
+};

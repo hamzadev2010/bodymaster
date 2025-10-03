@@ -81,8 +81,9 @@ export default function CoachesPage() {
       }
       setOpen(false);
       setEditing(null);
-    } catch (e: any) {
-      alert(e?.message || "Erreur lors de l'enregistrement");
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e.message : "Erreur lors de l'enregistrement";
+      alert(error);
     }
   }
 

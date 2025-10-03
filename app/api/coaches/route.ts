@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
+import type { DateInput } from "@/app/types";
+
 export const runtime = "nodejs";
 
-function parseDateLoose(input: any): Date | null {
+function parseDateLoose(input: DateInput): Date | null {
   if (!input) return null;
   try {
     const raw = String(input).trim();
@@ -62,7 +64,7 @@ export async function POST(request: Request) {
     } as const;
 
     try {
-      const created = await prisma.coach.create({ data: payload as any });
+      const created = await prisma.coach.create({ data: payload });
       try {
         await prisma.coachHistory.create({
           data: { coachId: created.id, action: "CREATE", changes: JSON.stringify(created) },
@@ -71,15 +73,19 @@ export async function POST(request: Request) {
         console.warn("POST /api/coaches history log failed:", histErr);
       }
       return NextResponse.json(created, { status: 201 });
-    } catch (e: any) {
-      if (e?.code === "P2002" && Array.isArray(e.meta?.target) && e.meta.target.includes("email")) {
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'code' in e && e.code === "P2002" && 
+          'meta' in e && e.meta && typeof e.meta === 'object' && 'target' in e.meta && 
+          Array.isArray(e.meta.target) && e.meta.target.includes("email")) {
         return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
       }
       console.error("POST /api/coaches error:", e);
-      return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+      const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

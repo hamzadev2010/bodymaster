@@ -107,7 +107,7 @@ function Nav() {
             <select
               className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
               value={currency}
-              onChange={(e) => setCurrency(e.target.value as any)}
+              onChange={(e) => setCurrency(e.target.value as "USD" | "EUR" | "MAD")}
               aria-label="Currency"
             >
               <option value="MAD">MAD</option>
@@ -117,7 +117,7 @@ function Nav() {
             <select
               className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
               value={lang}
-              onChange={(e) => setLang(e.target.value as any)}
+              onChange={(e) => setLang(e.target.value as "en" | "fr" | "ar")}
               dir={dir}
               aria-label="Language"
             >

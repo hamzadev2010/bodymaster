@@ -58,7 +58,7 @@ export default function DashboardPage() {
         if (coRes?.ok) setCoaches(await coRes.json());
         if (peRes?.ok) {
           const arr = await peRes.json();
-          const mapped: PresenceEntry[] = Array.isArray(arr) ? arr.map((p: any) => ({ id: p.id, clientId: p.clientId, time: p.time })) : [];
+          const mapped: PresenceEntry[] = Array.isArray(arr) ? arr.map((p: { id: number; clientId: number; time: string }) => ({ id: p.id, clientId: p.clientId, time: p.time })) : [];
           setPresence(mapped);
         }
       } finally {
@@ -90,7 +90,7 @@ export default function DashboardPage() {
       if (d >= startOfYear) revenueYear += p.amount || 0;
     }
 
-    const activePromotions = promotions.filter((p) => (p as any).active).length;
+    const activePromotions = promotions.filter((p) => p.active).length;
 
     // Client payment status using nextPaymentDate when available
     const byClient = new Map<number, Payment[]>();
@@ -167,7 +167,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-2">
             <div className="text-xs uppercase tracking-wide text-slate-500">{t("dashboard.revenue", "Revenue")}</div>
             <div className="flex items-center gap-2">
-            <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700" value={range} onChange={(e) => setRange(e.target.value as any)}>
+            <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700" value={range} onChange={(e) => setRange(e.target.value as "DAY" | "MONTH" | "YEAR")}>
               <option value="DAY">{t("dashboard.today", "Today")}</option>
               <option value="MONTH">{t("dashboard.thisMonth", "This month")}</option>
               <option value="YEAR">{t("dashboard.thisYear", "This year")}</option>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="text-xs uppercase tracking-wide text-slate-500">Présences</div>
             <div className="flex items-center gap-2">
-              <select className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-700" value={presenceRange} onChange={(e)=>setPresenceRange(e.target.value as any)}>
+              <select className="rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-700" value={presenceRange} onChange={(e)=>setPresenceRange(e.target.value as "DAY" | "MONTH" | "YEAR")}>
                 <option value="DAY">Jour</option>
                 <option value="MONTH">Mois</option>
                 <option value="YEAR">Année</option>

@@ -35,7 +35,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     const entry = languages.find((l) => l.code === active) || languages[0];
     document.documentElement.lang = active;
     document.documentElement.dir = entry.dir;
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("lang", lang);

@@ -28,7 +28,7 @@ function nextDateFromPeriod(paymentDate: Date, period: "MONTHLY" | "QUARTERLY" |
 
 export async function GET(request: Request) {
   const includeDeleted = new URL(request.url).searchParams.get("includeDeleted") === "1";
-  const where = includeDeleted ? {} : { deletedAt: null } as any;
+  const where = includeDeleted ? {} : { deletedAt: null };
   const payments = await prisma.payment.findMany({
     where,
     include: { client: true, promotion: true },
@@ -129,8 +129,8 @@ export async function POST(request: Request) {
     }).catch(() => undefined);
 
     return NextResponse.json(created, { status: 201 });
-  } catch (error: any) {
-    const message = error?.message || "Erreur serveur";
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

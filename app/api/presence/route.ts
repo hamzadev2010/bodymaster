@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
+import type { DatabaseWhereClause } from "@/app/types";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
     }
   } catch {}
 
-  const where: any = {};
+  const where: DatabaseWhereClause = {};
   if (start && end) where.time = { gte: start, lt: end };
 
   try {
@@ -44,10 +45,11 @@ export async function GET(request: Request) {
       orderBy: { time: "desc" },
     });
     return NextResponse.json(presences);
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Most common cause: database not migrated (table Presence missing)
+    const errorMessage = e instanceof Error ? e.message : "Erreur serveur lors du chargement des présences";
     return NextResponse.json(
-      { error: e?.message || "Erreur serveur lors du chargement des présences" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
@@ -104,7 +106,8 @@ export async function POST(request: Request) {
 
     const created = await prisma.presence.create({ data: { clientId, time } });
     return NextResponse.json(created, { status: 201 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

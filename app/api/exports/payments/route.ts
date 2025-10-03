@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
+import type { CSVData, CSVRow, DateInput, DateFormatter, CSVFormatter, CellFormatter, SafeStringFormatter, DatabaseWhereClause } from "@/app/types";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ function enumPeriodLabel(period: "MONTHLY" | "QUARTERLY" | "ANNUAL"): string {
   }
 }
 
-function isDailyPass(paymentDate: any, nextPaymentDate: any): boolean {
+function isDailyPass(paymentDate: DateInput, nextPaymentDate: DateInput): boolean {
   try {
     const start = new Date(paymentDate);
     const next = new Date(nextPaymentDate);
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
     }
   } catch {}
 
-  const where: any = { deletedAt: null };
+  const where: DatabaseWhereClause = { deletedAt: null };
   if (start && end) {
     where.paymentDate = { gte: start, lt: end };
   }
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
     orderBy: [{ paymentDate: "desc" }, { id: "desc" }],
   });
 
-  const header = [
+  const header: CSVRow = [
     "id",
     "client_id",
     "client_nom",
@@ -88,23 +89,23 @@ export async function GET(request: Request) {
     "cree_le_iso",
   ];
 
-  const rows = payments.map((p) => {
+  const rows: CSVData = payments.map((p) => {
     const promotionMonths = p.promotion?.subscriptionMonths ?? null;
     const periodLabel = promotionMonths && promotionMonths > 0
       ? `${promotionMonths} mois`
-      : enumPeriodLabel(p.subscriptionPeriod as any);
-    const isDaily = isDailyPass(p.paymentDate as any, p.nextPaymentDate as any);
+      : enumPeriodLabel(p.subscriptionPeriod as "MONTHLY" | "QUARTERLY" | "ANNUAL");
+    const isDaily = isDailyPass(p.paymentDate, p.nextPaymentDate);
     return [
-      p.id,
-      p.clientId,
+      p.id.toString(),
+      p.clientId.toString(),
       safe(p.client?.fullName),
       safe(p.client?.phone),
       String(p.amount ?? ""),
       toISODate(p.paymentDate),
       toISODate(p.nextPaymentDate),
-      p.promotionId ?? "",
+      p.promotionId?.toString() ?? "",
       safe(p.promotion?.name),
-      promotionMonths ?? "",
+      promotionMonths?.toString() ?? "",
       safe(p.subscriptionPeriod),
       periodLabel,
       isDaily ? "1" : "0",
@@ -123,7 +124,7 @@ export async function GET(request: Request) {
   });
 }
 
-function toISODate(d: any): string {
+const toISODate: DateFormatter = (d: DateInput): string => {
   try {
     if (!d) return "";
     const dt = new Date(d);
@@ -131,22 +132,22 @@ function toISODate(d: any): string {
   } catch {
     return "";
   }
-}
+};
 
-function toCSV(rows: any[][]): string {
+const toCSV: CSVFormatter = (rows: CSVData): string => {
   return rows
     .map((r) => r.map((cell) => formatCSVCell(cell)).join(","))
     .join("\n");
-}
+};
 
-function formatCSVCell(v: any): string {
+const formatCSVCell: CellFormatter = (v: unknown): string => {
   const s = (v ?? "").toString();
   if (s.includes(",") || s.includes("\n") || s.includes('"')) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
   return s;
-}
+};
 
-function safe(v: any): string {
+const safe: SafeStringFormatter = (v: unknown): string => {
   return (v ?? "").toString().replace(/[\r\n]+/g, " ").trim();
-}
+};

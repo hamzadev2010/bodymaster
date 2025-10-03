@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
+import type { DateInput } from "@/app/types";
+
 export const runtime = "nodejs";
 
-function parseDateLoose(input: any): Date | null {
+function parseDateLoose(input: DateInput): Date | null {
   if (!input) return null;
   try {
     const raw = String(input).trim();
@@ -94,7 +96,7 @@ export async function PUT(request: Request, { params }: Params) {
           const a = JSON.parse(hist[i].changes || "{}");
           const b = JSON.parse(hist[i+1].changes || "{}");
           if (a?.fullName && b?.fullName && a.fullName !== b.fullName) {
-            lastChangeAt = new Date(hist[i].createdAt as any);
+            lastChangeAt = new Date(hist[i].createdAt);
             break;
           }
         } catch {}
@@ -105,7 +107,7 @@ export async function PUT(request: Request, { params }: Params) {
           const a = JSON.parse(hist[0].changes || "{}");
           if (a?.fullName && a.fullName === current.fullName) {
             // Name was set in last update; treat that time as last change
-            lastChangeAt = new Date(hist[0].createdAt as any);
+            lastChangeAt = new Date(hist[0].createdAt);
           }
         } catch {}
       }
@@ -135,22 +137,26 @@ export async function PUT(request: Request, { params }: Params) {
     try {
       const updated = await prisma.client.update({
         where: { id },
-        data: payload as any,
+        data: payload,
         include: { history: true },
       });
       await prisma.clientHistory.create({
         data: { clientId: id, action: "UPDATE", changes: JSON.stringify(updated) },
       });
       return NextResponse.json(updated);
-    } catch (e: any) {
-      if (e?.code === "P2002" && Array.isArray(e.meta?.target) && e.meta.target.includes("email")) {
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'code' in e && e.code === "P2002" && 
+          'meta' in e && e.meta && typeof e.meta === 'object' && 'target' in e.meta && 
+          Array.isArray(e.meta.target) && e.meta.target.includes("email")) {
         return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
       }
       console.error("PUT /api/clients/[id] error:", e);
-      return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+      const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Erreur serveur" }, { status: 500 });
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 

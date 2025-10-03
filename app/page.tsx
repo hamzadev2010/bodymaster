@@ -112,8 +112,9 @@ export default function LoginPage() {
                   localStorage.setItem("loggedIn", "1");
                   localStorage.setItem("loggedUser", username);
                   router.replace("/dashboard");
-                } catch (err: any) {
-                  setError(err?.message || t("login.error", "Login failed"));
+                } catch (err: unknown) {
+                  const error = err instanceof Error ? err.message : t("login.error", "Login failed");
+                  setError(error);
                 } finally {
                   setLoading(false);
                 }

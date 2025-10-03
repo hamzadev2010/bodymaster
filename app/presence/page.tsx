@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import RequireAuth from "@/app/lib/RequireAuth";
+import type { CSVData, CSVRow, CSVFormatter, CellFormatter } from "@/app/types";
 
 type Client = { id: number; fullName: string; phone?: string | null };
 
@@ -12,17 +13,24 @@ type PresenceEntry = {
   timeISO: string;
 };
 
-function toCSV(rows: any[][]): string {
-  return rows.map((r) => r.map((c) => formatCSVCell(c)).join(",")).join("\n");
-}
+type PresenceWithClient = {
+  id: number;
+  clientId: number;
+  time: string;
+  client: Client | null;
+};
 
-function formatCSVCell(v: any): string {
+const toCSV: CSVFormatter = (rows: CSVData): string => {
+  return rows.map((r) => r.map((c) => formatCSVCell(c)).join(",")).join("\n");
+};
+
+const formatCSVCell: CellFormatter = (v: unknown): string => {
   const s = (v ?? "").toString();
   if (s.includes(",") || s.includes("\n") || s.includes('"')) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
   return s;
-}
+};
 
 export default function PresencePage() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -55,14 +63,14 @@ export default function PresencePage() {
         }
         if (res && res.ok) {
           const list = await res.json();
-          let arr: any[] = Array.isArray(list) ? list : [];
+          const arr: PresenceWithClient[] = Array.isArray(list) ? list : [];
           // If API returned mixed dates, filter by selectedDate
           const mapped: PresenceEntry[] = arr
-            .filter((p: any) => {
+            .filter((p: PresenceWithClient) => {
               const d = new Date(p.time);
               return d.toISOString().slice(0,10) === selectedDate;
             })
-            .map((p: any) => ({ id: p.id, clientId: p.clientId, clientName: p.client?.fullName || "", timeISO: p.time }));
+            .map((p: PresenceWithClient) => ({ id: p.id, clientId: p.clientId, clientName: p.client?.fullName || "", timeISO: p.time }));
           setEntries(mapped);
         } else {
           setError("Impossible de charger les présences.");
@@ -95,8 +103,9 @@ export default function PresencePage() {
         const msg = await res.json().catch(()=>({ error: "Erreur inconnue" }));
         setError(msg?.error || "Échec de pointage du client.");
       }
-    } catch (e: any) {
-      setError(e?.message || "Échec réseau lors du pointage.");
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e.message : "Échec réseau lors du pointage.";
+      setError(error);
     }
   }
 
@@ -110,14 +119,15 @@ export default function PresencePage() {
         const msg = await res.json().catch(()=>({ error: "Erreur inconnue" }));
         setError(msg?.error || "Échec de suppression de la présence.");
       }
-    } catch (e: any) {
-      setError(e?.message || "Échec réseau lors de la suppression.");
+    } catch (e: unknown) {
+      const error = e instanceof Error ? e.message : "Échec réseau lors de la suppression.";
+      setError(error);
     }
   }
 
-  function exportCSV() {
-    const header = ["date_iso", "jour", "heure", "client_id", "client_nom"];
-    const rows = entries
+  const exportCSV = useCallback(() => {
+    const header: CSVRow = ["date_iso", "jour", "heure", "client_id", "client_nom"];
+    const rows: CSVData = entries
       .slice()
       .sort((a, b) => new Date(a.timeISO).getTime() - new Date(b.timeISO).getTime())
       .map((e) => {
@@ -128,7 +138,7 @@ export default function PresencePage() {
         const mm = String(dt.getMinutes()).padStart(2, '0');
         const ss = String(dt.getSeconds()).padStart(2, '0');
         const heure = `${hh}:${mm}:${ss}`;
-        return [dateIso, jour, heure, e.clientId, e.clientName];
+        return [dateIso, jour, heure, e.clientId.toString(), e.clientName];
       });
     const csv = toCSV([header, ...rows]);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -138,7 +148,7 @@ export default function PresencePage() {
     a.download = `presence-${selectedDate}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }
+  }, [entries, selectedDate]);
 
   // Auto-download CSV once per day (today) on first visit
   useEffect(() => {
@@ -153,7 +163,7 @@ export default function PresencePage() {
         }
       }
     } catch {}
-  }, [selectedDate, entries.length]);
+  }, [selectedDate, entries.length, exportCSV]);
 
   return (
     <RequireAuth>
@@ -219,7 +229,7 @@ export default function PresencePage() {
                   </tr>
                 ))}
                 {entries.length === 0 && !loading && (
-                  <tr><td colSpan={4} className="px-3 py-4 text-sm text-slate-500">Aucun pointage effectué aujourd'hui.</td></tr>
+                  <tr><td colSpan={4} className="px-3 py-4 text-sm text-slate-500">Aucun pointage effectué aujourd&apos;hui.</td></tr>
                 )}
               </tbody>
             </table>
