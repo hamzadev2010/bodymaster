@@ -3,6 +3,7 @@ import prisma from "@/app/lib/prisma";
 import type { CSVData, CSVRow, DateInput, DateFormatter, CSVFormatter, CellFormatter, SafeStringFormatter } from "@/app/types";
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

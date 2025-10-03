@@ -45,8 +45,19 @@ export default function CoachesPage() {
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch("/api/coaches");
-      setCoaches(await res.json());
+      try {
+        const res = await fetch("/api/coaches");
+        if (res.ok) {
+          const data = await res.json();
+          setCoaches(data);
+        } else {
+          console.error('Failed to fetch coaches:', res.status, res.statusText);
+          setCoaches([]); // Set empty array on error
+        }
+      } catch (error) {
+        console.error('Error fetching coaches:', error);
+        setCoaches([]); // Set empty array on error
+      }
     })();
   }, []);
 

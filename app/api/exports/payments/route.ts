@@ -3,6 +3,7 @@ import prisma from "@/app/lib/prisma";
 import type { CSVData, CSVRow, DateInput, DateFormatter, CSVFormatter, CellFormatter, SafeStringFormatter, DatabaseWhereClause } from "@/app/types";
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
 function enumPeriodLabel(period: "MONTHLY" | "QUARTERLY" | "ANNUAL"): string {
   switch (period) {

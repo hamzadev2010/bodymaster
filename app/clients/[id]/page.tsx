@@ -1,20 +1,15 @@
 import { notFound } from "next/navigation";
 import RequireAuth from "@/app/lib/RequireAuth";
-import type { Client, Payment, ClientHistory, Presence } from "@/app/types";
 
-// Define the complete Client type with relations
-interface ClientWithRelations extends Client {
-  history: ClientHistory[];
-  payments: Payment[];
-  presences: Presence[];
-}
+// Force this page to be server-side rendered at runtime
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-// Server-side data fetching function
-async function getClientData(id: string): Promise<ClientWithRelations | null> {
+// Simple server-side data fetching function
+async function getClientData(id: string) {
   try {
     // Validate the ID first
     const clientId = Number(id);
@@ -22,26 +17,33 @@ async function getClientData(id: string): Promise<ClientWithRelations | null> {
       return null;
     }
 
-    // Make internal API call to our own API route
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : process.env.NODE_ENV === 'production' 
-        ? 'https://your-domain.com' // Replace with your actual domain
-        : 'http://localhost:3000';
-    
-    const response = await fetch(`${baseUrl}/api/clients/${id}`, {
-      cache: 'no-store', // Ensure fresh data on each request
-    });
+    // Use the existing Prisma client from lib
+    const { default: prisma } = await import('@/app/lib/prisma');
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error(`Failed to fetch client: ${response.status}`);
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        include: {
+          history: {
+            orderBy: { createdAt: 'desc' },
+            take: 10
+          },
+          payments: {
+            orderBy: { paymentDate: 'desc' },
+            take: 5
+          },
+          presences: {
+            orderBy: { time: 'desc' },
+            take: 10
+          }
+        }
+      });
+
+      return client;
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return null;
     }
-
-    const client = await response.json();
-    return client;
   } catch (error) {
     console.error('Error fetching client data:', error);
     return null;
@@ -148,16 +150,16 @@ export default async function ClientDetailPage({ params }: PageProps) {
         </section>
 
         {/* Recent Payments */}
-        {client.payments.length > 0 && (
+        {client.payments && client.payments.length > 0 && (
           <section className="rounded-xl border border-yellow-300 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Paiements récents</h2>
             <div className="space-y-3">
-              {client.payments.map((payment) => (
+              {client.payments.map((payment: any) => (
                 <div key={payment.id} className="rounded-lg border p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-gray-900">
-                        {payment.amount.toLocaleString('fr-FR')} {payment.currency || 'TND'}
+                        {payment.amount?.toLocaleString('fr-FR')} TND
                       </p>
                       <p className="text-sm text-gray-600">
                         Période: {payment.subscriptionPeriod}
@@ -182,11 +184,11 @@ export default async function ClientDetailPage({ params }: PageProps) {
         )}
 
         {/* Recent Presences */}
-        {client.presences.length > 0 && (
+        {client.presences && client.presences.length > 0 && (
           <section className="rounded-xl border border-yellow-300 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Présences récentes</h2>
             <div className="space-y-2">
-              {client.presences.map((presence) => (
+              {client.presences.map((presence: any) => (
                 <div key={presence.id} className="flex items-center justify-between rounded-lg border p-3">
                   <p className="font-medium text-gray-900">
                     {new Date(presence.time).toLocaleDateString('fr-FR')}
@@ -201,11 +203,11 @@ export default async function ClientDetailPage({ params }: PageProps) {
         )}
 
         {/* History */}
-        {client.history.length > 0 && (
+        {client.history && client.history.length > 0 && (
           <section className="rounded-xl border border-yellow-300 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Historique des modifications</h2>
             <div className="space-y-3">
-              {client.history.map((entry) => (
+              {client.history.map((entry: any) => (
                 <div key={entry.id} className="rounded-lg border p-4">
                   <div className="flex items-start justify-between">
                     <div>

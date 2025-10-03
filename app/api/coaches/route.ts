@@ -3,6 +3,7 @@ import prisma from "@/app/lib/prisma";
 import type { DateInput } from "@/app/types";
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
 function parseDateLoose(input: DateInput): Date | null {
   if (!input) return null;
@@ -32,8 +33,13 @@ function sanitize(input: unknown, { max = 120, pattern }: { max?: number; patter
 }
 
 export async function GET() {
-  const coaches = await prisma.coach.findMany({ orderBy: { createdAt: "desc" } });
-  return NextResponse.json(coaches);
+  try {
+    const coaches = await prisma.coach.findMany({ orderBy: { createdat: "desc" } });
+    return NextResponse.json(coaches);
+  } catch (error) {
+    console.error('GET /api/coaches error:', error);
+    return NextResponse.json({ error: "Database connection error" }, { status: 503 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -50,24 +56,24 @@ export async function POST(request: Request) {
     const notes = sanitize(data.notes, { max: 120 });
     const nationalId = sanitize(data.nationalId, { max: 30, pattern: /^[A-Za-z0-9]+$/ });
     const payload = {
-      fullName,
+      fullname: fullName,
       specialty,
       email,
       phone,
       notes,
-      dateOfBirth: parseDateLoose(data.dateOfBirth),
-      nationalId,
-      registrationDate: parseDateLoose(data.registrationDate) || undefined,
-      subscriptionPeriod: data.subscriptionPeriod ?? null,
-      hasPromotion: Boolean(data.hasPromotion),
-      promotionPeriod: data.promotionPeriod ?? null,
+      dateofbirth: parseDateLoose(data.dateOfBirth),
+      nationalid: nationalId,
+      registrationdate: parseDateLoose(data.registrationDate) || undefined,
+      subscriptionperiod: data.subscriptionPeriod ?? null,
+      haspromotion: Boolean(data.hasPromotion),
+      promotionperiod: data.promotionPeriod ?? null,
     } as const;
 
     try {
       const created = await prisma.coach.create({ data: payload });
       try {
         await prisma.coachHistory.create({
-          data: { coachId: created.id, action: "CREATE", changes: JSON.stringify(created) },
+          data: { coachid: created.id, action: "CREATE", changes: JSON.stringify(created) },
         });
       } catch (histErr) {
         console.warn("POST /api/coaches history log failed:", histErr);

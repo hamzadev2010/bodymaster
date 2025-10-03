@@ -19,22 +19,22 @@ export async function PUT(request: Request, { params }: Params) {
 	const updated = await prisma.coach.update({
 		where: { id },
 		data: {
-			fullName: String(data.fullName),
+			fullname: String(data.fullName),
 			specialty: data.specialty?.toString().trim() ? data.specialty.toString().trim() : null,
 			email: data.email?.toString().trim() ? data.email.toString().trim() : null,
 			phone: data.phone?.toString().trim() ? data.phone.toString().trim() : null,
 			notes: data.notes?.toString().trim() ? data.notes.toString().trim() : null,
-			dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-			nationalId: data.nationalId?.toString().trim() ? data.nationalId.toString().trim() : null,
-			registrationDate: data.registrationDate ? new Date(data.registrationDate) : undefined,
-			subscriptionPeriod: data.subscriptionPeriod ?? null,
-			hasPromotion: Boolean(data.hasPromotion),
-			promotionPeriod: data.promotionPeriod ?? null,
+			dateofbirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+			nationalid: data.nationalId?.toString().trim() ? data.nationalId.toString().trim() : null,
+			registrationdate: data.registrationDate ? new Date(data.registrationDate) : undefined,
+			subscriptionperiod: data.subscriptionPeriod ?? null,
+			haspromotion: Boolean(data.hasPromotion),
+			promotionperiod: data.promotionPeriod ?? null,
 		},
 	});
 
 	await prisma.coachHistory.create({
-		data: { coachId: id, action: "UPDATE", changes: JSON.stringify(updated) },
+		data: { coachid: id, action: "UPDATE", changes: JSON.stringify(updated) },
 	});
 	return NextResponse.json(updated);
 }

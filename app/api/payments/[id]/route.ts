@@ -22,18 +22,18 @@ export async function PUT(request: Request, { params }: Params) {
   const updated = await prisma.payment.update({
     where: { id },
     data: {
-      clientId: data.clientId ? Number(data.clientId) : undefined,
+      clientid: data.clientId ? Number(data.clientId) : undefined,
       amount: data.amount !== undefined ? Number(data.amount) : undefined,
-      subscriptionPeriod: data.subscriptionPeriod,
-      paymentDate: data.paymentDate ? new Date(data.paymentDate) : undefined,
-      nextPaymentDate: data.nextPaymentDate ? new Date(data.nextPaymentDate) : undefined,
+      subscriptionperiod: data.subscriptionPeriod,
+      paymentdate: data.paymentDate ? new Date(data.paymentDate) : undefined,
+      nextpaymentdate: data.nextPaymentDate ? new Date(data.nextPaymentDate) : undefined,
       notes: data.notes?.toString().trim() ?? undefined,
     },
-    include: { client: true, promotion: true },
+    include: { Client: true, Promotion: true },
   });
 
   await prisma.paymentHistory.create({
-    data: { paymentId: id, action: "UPDATE", changes: JSON.stringify(updated) },
+    data: { paymentid: id, action: "UPDATE", changes: JSON.stringify(updated) },
   });
 
   return NextResponse.json(updated);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
 function addMonths(date: Date, months: number) {
   const d = new Date(date.getTime());
@@ -27,15 +28,20 @@ function nextDateFromPeriod(paymentDate: Date, period: "MONTHLY" | "QUARTERLY" |
 }
 
 export async function GET(request: Request) {
-  const includeDeleted = new URL(request.url).searchParams.get("includeDeleted") === "1";
-  const where = includeDeleted ? {} : { deletedAt: null };
-  const payments = await prisma.payment.findMany({
-    where,
-    include: { client: true, promotion: true },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
-  return NextResponse.json(payments);
+  try {
+    const includeDeleted = new URL(request.url).searchParams.get("includeDeleted") === "1";
+    const where = includeDeleted ? {} : { deletedat: null };
+    const payments = await prisma.payment.findMany({
+      where,
+      include: { Client: true, Promotion: true },
+      orderBy: { createdat: "desc" },
+      take: 100,
+    });
+    return NextResponse.json(payments);
+  } catch (error) {
+    console.error('GET /api/payments error:', error);
+    return NextResponse.json({ error: "Database connection error" }, { status: 503 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -90,12 +96,12 @@ export async function POST(request: Request) {
     // Overlap condition: existing.paymentDate < nextPaymentDate AND existing.nextPaymentDate > paymentDate
     const overlap = await prisma.payment.findFirst({
       where: {
-        deletedAt: null,
-        clientId,
-        paymentDate: { lt: nextPaymentDate },
-        nextPaymentDate: { gt: paymentDate },
+        deletedat: null,
+        clientid: clientId,
+        paymentdate: { lt: nextPaymentDate },
+        nextpaymentdate: { gt: paymentDate },
       },
-      select: { id: true, paymentDate: true, nextPaymentDate: true },
+      select: { id: true, paymentdate: true, nextpaymentdate: true },
     });
     if (overlap) {
       return NextResponse.json({ error: "Ce client possède déjà un paiement couvrant cette période" }, { status: 409 });
@@ -103,20 +109,20 @@ export async function POST(request: Request) {
 
     const created = await prisma.payment.create({
       data: {
-        clientId,
-        promotionId: promotion?.id,
+        clientid: clientId,
+        promotionid: promotion?.id,
         amount,
-        subscriptionPeriod,
-        paymentDate,
-        nextPaymentDate,
+        subscriptionperiod: subscriptionPeriod,
+        paymentdate: paymentDate,
+        nextpaymentdate: nextPaymentDate,
         notes,
       },
-      include: { client: true, promotion: true },
+      include: { Client: true, Promotion: true },
     });
 
     try {
       await prisma.paymentHistory.create({
-        data: { paymentId: created.id, action: "CREATE", changes: JSON.stringify(created) },
+        data: { paymentid: created.id, action: "CREATE", changes: JSON.stringify(created) },
       });
     } catch (histErr) {
       console.warn("POST /api/payments history log failed:", histErr);
@@ -125,7 +131,7 @@ export async function POST(request: Request) {
     // Optionnel: mettre à jour la période d'abonnement du client selon le dernier paiement
     await prisma.client.update({
       where: { id: clientId },
-      data: { subscriptionPeriod },
+      data: { subscriptionperiod: subscriptionPeriod },
     }).catch(() => undefined);
 
     return NextResponse.json(created, { status: 201 });

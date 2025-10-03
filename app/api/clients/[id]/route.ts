@@ -46,15 +46,15 @@ export async function GET(req: Request, { params }: Params) {
     const client = await prisma.client.findUnique({ 
       where: { id },
       include: {
-        history: {
-          orderBy: { createdAt: 'desc' },
+        ClientHistory: {
+          orderBy: { createdat: 'desc' },
           take: 10
         },
-        payments: {
-          orderBy: { paymentDate: 'desc' },
+        Payment: {
+          orderBy: { paymentdate: 'desc' },
           take: 5
         },
-        presences: {
+        Presence: {
           orderBy: { time: 'desc' },
           take: 10
         }
@@ -65,7 +65,7 @@ export async function GET(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
     
-    if (!includeDeleted && client.deletedAt) {
+    if (!includeDeleted && client.deletedat) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
     
@@ -105,10 +105,10 @@ export async function PUT(request: Request, { params }: Params) {
     const existing = await prisma.client.findFirst({
       where: {
         id: { not: id },
-        deletedAt: null,
+        deletedat: null,
         OR: [
-          { fullName: fullName },
-          ...(nationalId ? [{ nationalId }] : []),
+          { fullname: fullName },
+          ...(nationalId ? [{ nationalid: nationalId }] : []),
         ],
       },
       select: { id: true },
@@ -127,14 +127,14 @@ export async function PUT(request: Request, { params }: Params) {
       }
     }
 
-    const current = await prisma.client.findUnique({ where: { id }, select: { id: true, fullName: true } });
+    const current = await prisma.client.findUnique({ where: { id }, select: { id: true, fullname: true } });
     if (!current) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
     // Restrict fullName change to once per 15 days
-    if (fullName !== current.fullName) {
+    if (fullName !== current.fullname) {
       const hist = await prisma.clientHistory.findMany({
-        where: { clientId: id },
-        orderBy: { createdAt: "desc" },
+        where: { clientid: id },
+        orderBy: { createdat: "desc" },
         take: 50,
       });
       // Find the most recent entry where fullName changed (compare consecutive snapshots)
@@ -143,8 +143,8 @@ export async function PUT(request: Request, { params }: Params) {
         try {
           const a = JSON.parse(hist[i].changes || "{}");
           const b = JSON.parse(hist[i+1].changes || "{}");
-          if (a?.fullName && b?.fullName && a.fullName !== b.fullName) {
-            lastChangeAt = new Date(hist[i].createdAt);
+          if (a?.fullname && b?.fullname && a.fullname !== b.fullname) {
+            lastChangeAt = new Date(hist[i].createdat);
             break;
           }
         } catch {}
@@ -153,9 +153,9 @@ export async function PUT(request: Request, { params }: Params) {
         // Also compare with current DB value if only one history entry exists
         try {
           const a = JSON.parse(hist[0].changes || "{}");
-          if (a?.fullName && a.fullName === current.fullName) {
+          if (a?.fullname && a.fullname === current.fullname) {
             // Name was set in last update; treat that time as last change
-            lastChangeAt = new Date(hist[0].createdAt);
+            lastChangeAt = new Date(hist[0].createdat);
           }
         } catch {}
       }
@@ -168,28 +168,28 @@ export async function PUT(request: Request, { params }: Params) {
     }
 
     const payload = {
-      fullName,
-      firstName: data.firstName?.toString().trim() ? data.firstName.toString().trim() : null,
-      lastName: data.lastName?.toString().trim() ? data.lastName.toString().trim() : null,
+      fullname: fullName,
+      firstname: data.firstName?.toString().trim() ? data.firstName.toString().trim() : null,
+      lastname: data.lastName?.toString().trim() ? data.lastName.toString().trim() : null,
       email,
       phone: data.phone?.toString().trim() ? data.phone.toString().trim().replace(/[^0-9]/g, "").slice(0,12) : null,
       notes: rawNotes,
-      dateOfBirth: dob,
-      nationalId,
-      registrationDate: parseDateLoose(data.registrationDate) || undefined,
-      subscriptionPeriod: data.subscriptionPeriod ?? null,
-      hasPromotion: Boolean(data.hasPromotion),
-      promotionPeriod: data.promotionPeriod ?? null,
+      dateofbirth: dob,
+      nationalid: nationalId,
+      registrationdate: parseDateLoose(data.registrationDate) || undefined,
+      subscriptionperiod: data.subscriptionPeriod ?? null,
+      haspromotion: Boolean(data.hasPromotion),
+      promotionperiod: data.promotionPeriod ?? null,
     } as const;
 
     try {
       const updated = await prisma.client.update({
         where: { id },
         data: payload,
-        include: { history: true },
+        include: { ClientHistory: true },
       });
       await prisma.clientHistory.create({
-        data: { clientId: id, action: "UPDATE", changes: JSON.stringify(updated) },
+        data: { clientid: id, action: "UPDATE", changes: JSON.stringify(updated) },
       });
       return NextResponse.json(updated);
     } catch (e: unknown) {

@@ -3,6 +3,7 @@ import prisma from "@/app/lib/prisma";
 import type { DateInput } from "@/app/types";
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
 function parseDateLoose(input: DateInput): Date | null {
   if (!input) return null;
@@ -36,11 +37,16 @@ function sanitize(input: unknown, { max = 120, pattern }: { max?: number; patter
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const includeDeleted = searchParams.get("includeDeleted") === "1";
-  const where = includeDeleted ? {} : { deletedAt: null };
-  const clients = await prisma.client.findMany({ where, orderBy: { createdAt: "desc" } });
-  return NextResponse.json(clients);
+  try {
+    const { searchParams } = new URL(request.url);
+    const includeDeleted = searchParams.get("includeDeleted") === "1";
+    const where = includeDeleted ? {} : { deletedat: null };
+    const clients = await prisma.client.findMany({ where, orderBy: { createdat: "desc" } });
+    return NextResponse.json(clients);
+  } catch (error) {
+    console.error('GET /api/clients error:', error);
+    return NextResponse.json({ error: "Database connection error" }, { status: 503 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -66,10 +72,10 @@ export async function POST(request: Request) {
     // Enforce uniqueness on fullName OR nationalId (excluding soft-deleted records)
     const existing = await prisma.client.findFirst({
       where: {
-        deletedAt: null,
+        deletedat: null,
         OR: [
-          { fullName: fullName },
-          ...(nationalId ? [{ nationalId }] : []),
+          { fullname: fullName },
+          ...(nationalId ? [{ nationalid: nationalId }] : []),
         ],
       },
       select: { id: true },
@@ -89,25 +95,25 @@ export async function POST(request: Request) {
     }
 
     const payload = {
-      fullName,
-      firstName,
-      lastName,
+      fullname: fullName,
+      firstname: firstName,
+      lastname: lastName,
       email,
       phone,
       notes: rawNotes,
-      dateOfBirth: dob,
-      nationalId: nationalId ? nationalId.toUpperCase() : null,
-      registrationDate: parseDateLoose(data.registrationDate) || undefined,
-      subscriptionPeriod: data.subscriptionPeriod ?? null,
-      hasPromotion: Boolean(data.hasPromotion),
-      promotionPeriod: data.promotionPeriod ?? null,
+      dateofbirth: dob,
+      nationalid: nationalId ? nationalId.toUpperCase() : null,
+      registrationdate: parseDateLoose(data.registrationDate) || undefined,
+      subscriptionperiod: data.subscriptionPeriod ?? null,
+      haspromotion: Boolean(data.hasPromotion),
+      promotionperiod: data.promotionPeriod ?? null,
     } as const;
 
     try {
       const created = await prisma.client.create({ data: payload });
       try {
         await prisma.clientHistory.create({
-          data: { clientId: created.id, action: "CREATE", changes: JSON.stringify(created) },
+          data: { clientid: created.id, action: "CREATE", changes: JSON.stringify(created) },
         });
       } catch (histErr) {
         console.warn("POST /api/clients history log failed:", histErr);

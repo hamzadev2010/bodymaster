@@ -53,12 +53,32 @@ export default function ClientsPage() {
 
   useEffect(() => {
     void (async () => {
-      const [cRes, pRes] = await Promise.all([
-        fetch("/api/clients").catch(() => undefined),
-        fetch("/api/payments").catch(() => undefined),
-      ]);
-      if (cRes?.ok) setClients(await cRes.json());
-      if (pRes?.ok) setPayments(await pRes.json());
+      try {
+        const [cRes, pRes] = await Promise.all([
+          fetch("/api/clients").catch(() => undefined),
+          fetch("/api/payments").catch(() => undefined),
+        ]);
+        
+        if (cRes?.ok) {
+          const clientsData = await cRes.json();
+          setClients(clientsData);
+        } else {
+          console.error('Failed to fetch clients:', cRes?.status, cRes?.statusText);
+          setClients([]);
+        }
+        
+        if (pRes?.ok) {
+          const paymentsData = await pRes.json();
+          setPayments(paymentsData);
+        } else {
+          console.error('Failed to fetch payments:', pRes?.status, pRes?.statusText);
+          setPayments([]);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setClients([]);
+        setPayments([]);
+      }
     })();
   }, []);
 
