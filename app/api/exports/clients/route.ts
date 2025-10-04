@@ -9,27 +9,27 @@ export async function GET() {
   try {
     // Export basic client registry as CSV
     const clients = await prisma.client.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdat: "desc" },
     });
     const header: CSVRow = [
       "id",
-      "fullName",
+      "fullname",
       "email",
       "phone",
-      "nationalId",
-      "registrationDate",
-      "createdAt",
-      "updatedAt",
+      "nationalid",
+      "registrationdate",
+      "createdat",
+      "updatedat",
     ];
-    const rows: CSVData = clients.map((c: { id: number; fullName: string; email: string | null; phone: string | null; nationalId: string | null; registrationDate: Date | null; createdAt: Date; updatedAt: Date }) => [
+    const rows: CSVData = clients.map((c: { id: number; fullname: string; email: string | null; phone: string | null; nationalid: string | null; registrationdate: Date | null; createdat: Date | null; updatedat: Date | null }) => [
       c.id.toString(),
-      safe(c.fullName),
+      safe(c.fullname),
       safe(c.email),
       safe(c.phone),
-      safe(c.nationalId),
-      toISODate(c.registrationDate),
-      toISODate(c.createdAt),
-      toISODate(c.updatedAt),
+      safe(c.nationalid),
+      toISODate(c.registrationdate),
+      toISODate(c.createdat),
+      toISODate(c.updatedat),
     ]);
     const csv = toCSV([header, ...rows]);
     return new NextResponse(csv, {

@@ -16,23 +16,43 @@
     color: #0f172a;
   }
 
-  input:focus, select:focus, textarea:focus {
+  /* Login page specific styles - white text */
+  .login-page input:focus, .login-page select:focus, .login-page textarea:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25); /* indigo-600 ring */
-    background-color: #ffffff; /* ensure white bg on focus */
-    border-color: #6366f1;     /* indigo-500 */
-    color: #0f172a;            /* slate-900 */
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #ffffff;            /* white text */
+    caret-color: #ffffff;      /* white caret */
   }
 
-  /* Default readable form controls */
-  input, select, textarea {
-    color: #0f172a;            /* slate-900 */
-    background-color: #ffffff; /* white */
-    border-color: #d1d5db;     /* neutral-300 */
-    caret-color: #0f172a;      /* visible caret */
+  .login-page input, .login-page select, .login-page textarea {
+    color: #ffffff !important;            /* white text */
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    caret-color: #ffffff !important;      /* white caret */
     font-size: 0.95rem;
     line-height: 1.5rem;
-    font-weight: 500;          /* medium for visibility */
+    font-weight: 500;
+  }
+
+  /* Default form controls for other pages */
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+    background-color: #ffffff;
+    border-color: #6366f1;
+    color: #0f172a;
+  }
+
+  input, select, textarea {
+    color: #0f172a;
+    background-color: #ffffff;
+    border-color: #d1d5db;
+    caret-color: #0f172a;
+    font-size: 0.95rem;
+    line-height: 1.5rem;
+    font-weight: 500;
   }
   input::placeholder, textarea::placeholder {
     color: #9ca3af;            /* neutral-400 */
@@ -75,43 +95,7 @@
   color: #111827;  /* gray-900 */
 }
 
-/* 3D Login Page Animations */
-@keyframes float-1 {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(180deg); }
-}
-
-@keyframes float-2 {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-15px) rotate(-180deg); }
-}
-
-@keyframes float-3 {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-25px) rotate(90deg); }
-}
-
-@keyframes float-4 {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-18px) rotate(-90deg); }
-}
-
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes logo-glow {
-  0%, 100% { 
-    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
-    transform: scale(1);
-  }
-  50% { 
-    filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.8));
-    transform: scale(1.05);
-  }
-}
-
+/* Login Page Animations */
 @keyframes text-glow {
   0%, 100% { 
     text-shadow: 0 0 15px rgba(251, 191, 36, 0.8), 0 0 25px rgba(251, 191, 36, 0.6), 0 0 35px rgba(251, 191, 36, 0.4);
@@ -125,31 +109,6 @@
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
   20%, 40%, 60%, 80% { transform: translateX(5px); }
-}
-
-/* Custom Animation Classes */
-.animate-float-1 {
-  animation: float-1 6s ease-in-out infinite;
-}
-
-.animate-float-2 {
-  animation: float-2 8s ease-in-out infinite;
-}
-
-.animate-float-3 {
-  animation: float-3 7s ease-in-out infinite;
-}
-
-.animate-float-4 {
-  animation: float-4 9s ease-in-out infinite;
-}
-
-.animate-spin-slow {
-  animation: spin-slow 10s linear infinite;
-}
-
-.animate-logo-glow {
-  animation: logo-glow 3s ease-in-out infinite;
 }
 
 .animate-text-glow {

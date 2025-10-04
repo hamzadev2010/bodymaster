@@ -144,7 +144,10 @@ export async function PUT(request: Request, { params }: Params) {
           const a = JSON.parse(hist[i].changes || "{}");
           const b = JSON.parse(hist[i+1].changes || "{}");
           if (a?.fullname && b?.fullname && a.fullname !== b.fullname) {
-            lastChangeAt = new Date(hist[i].createdat);
+            const createdAt = hist[i]?.createdat;
+            if (createdAt) {
+              lastChangeAt = new Date(createdAt);
+            }
             break;
           }
         } catch {}
@@ -155,7 +158,10 @@ export async function PUT(request: Request, { params }: Params) {
           const a = JSON.parse(hist[0].changes || "{}");
           if (a?.fullname && a.fullname === current.fullname) {
             // Name was set in last update; treat that time as last change
-            lastChangeAt = new Date(hist[0].createdat);
+            const createdAt = hist[0]?.createdat;
+            if (createdAt) {
+              lastChangeAt = new Date(createdAt);
+            }
           }
         } catch {}
       }

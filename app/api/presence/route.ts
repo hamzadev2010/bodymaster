@@ -4,7 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 
-// GET /api/presence?year=YYYY&month=MM&day=DD
+// ✅ GET /api/presence?year=YYYY&month=MM&day=DD
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const year = searchParams.get("year");
@@ -13,6 +13,7 @@ export async function GET(request: Request) {
 
   let start: Date | null = null;
   let end: Date | null = null;
+
   try {
     if (year && !/^[0-9]{4}$/.test(year)) throw new Error("invalid year");
     if (month && !/^(0?[1-9]|1[0-2])$/.test(month)) throw new Error("invalid month");
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
       start = new Date(Date.UTC(y, m, d, 0, 0, 0));
       end = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
     } else {
-      // Default: today
+      // Default to today
       const now = new Date();
       const y = now.getUTCFullYear();
       const m = now.getUTCMonth();
@@ -33,7 +34,15 @@ export async function GET(request: Request) {
       start = new Date(Date.UTC(y, m, d, 0, 0, 0));
       end = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
     }
-  } catch {}
+  } catch {
+    // fallback to today if params are invalid
+    const now = new Date();
+    const y = now.getUTCFullYear();
+    const m = now.getUTCMonth();
+    const d = now.getUTCDate();
+    start = new Date(Date.UTC(y, m, d, 0, 0, 0));
+    end = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
+  }
 
   const where: Prisma.PresenceWhereInput = {};
   if (start && end) where.time = { gte: start, lt: end };
@@ -41,73 +50,102 @@ export async function GET(request: Request) {
   try {
     const presences = await prisma.presence.findMany({
       where,
-      include: { client: true },
+      include: { Client: true },
       orderBy: { time: "desc" },
     });
     return NextResponse.json(presences);
   } catch (e: unknown) {
-    // Most common cause: database not migrated (table Presence missing)
-    const errorMessage = e instanceof Error ? e.message : "Erreur serveur lors du chargement des présences";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      e instanceof Error
+        ? e.message
+        : "Erreur serveur lors du chargement des présences";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
-// POST /api/presence { clientId, time? }
+// ✅ POST /api/presence { clientId, time? }
 export async function POST(request: Request) {
   try {
     const data = await request.json().catch(() => null);
-    if (!data) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    if (!data)
+      return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+
     const clientId = Number(data.clientId);
-    if (!clientId || !Number.isFinite(clientId)) return NextResponse.json({ error: "clientId invalide" }, { status: 400 });
+    if (!clientId || !Number.isFinite(clientId))
+      return NextResponse.json(
+        { error: "clientId invalide" },
+        { status: 400 }
+      );
+
     const time = data.time ? new Date(data.time) : new Date();
-    if (isNaN(time.getTime())) return NextResponse.json({ error: "time invalide" }, { status: 400 });
+    if (isNaN(time.getTime()))
+      return NextResponse.json({ error: "time invalide" }, { status: 400 });
 
-    // ensure client exists
+    // ✅ Ensure client exists
     const client = await prisma.client.findUnique({ where: { id: clientId } });
-    if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
+    if (!client)
+      return NextResponse.json(
+        { error: "Client introuvable" },
+        { status: 404 }
+      );
 
-    // 1) Prevent double check-in for the same person on the same day (UTC day)
+    // ✅ Prevent double check-in for the same day
     try {
       const y = time.getUTCFullYear();
       const m = time.getUTCMonth();
       const d = time.getUTCDate();
       const start = new Date(Date.UTC(y, m, d, 0, 0, 0));
       const end = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
+
       const existingToday = await prisma.presence.findFirst({
         where: { clientId, time: { gte: start, lt: end } },
         select: { id: true },
       });
+
       if (existingToday) {
         return NextResponse.json(
           { error: "Ce client a déjà été pointé aujourd'hui" },
           { status: 409 }
         );
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Double check validation failed:", e);
+    }
 
-    // 2) Block check-in for clients who are not up to date on payments
+    // ✅ Block check-in for clients not up to date on payments
     try {
       const latestPayment = await prisma.payment.findFirst({
         where: { clientId, deletedAt: null },
         orderBy: { paymentDate: "desc" },
         select: { id: true, nextPaymentDate: true },
       });
+
       const now = new Date();
-      if (!latestPayment || new Date(latestPayment.nextPaymentDate) <= now) {
+
+      // null-safety fix (avoids Vercel build error)
+      if (
+        !latestPayment ||
+        !latestPayment.nextPaymentDate ||
+        new Date(latestPayment.nextPaymentDate).getTime() <= now.getTime()
+      ) {
         return NextResponse.json(
           { error: "Client non à jour de paiement. Pointage refusé." },
           { status: 403 }
         );
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Payment verification failed:", e);
+    }
 
-    const created = await prisma.presence.create({ data: { clientId, time } });
+    // ✅ Create presence record
+    const created = await prisma.presence.create({
+      data: { clientId, time },
+    });
+
     return NextResponse.json(created, { status: 201 });
   } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+    const errorMessage =
+      e instanceof Error ? e.message : "Erreur serveur inattendue";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
