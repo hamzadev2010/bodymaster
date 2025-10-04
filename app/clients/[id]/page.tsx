@@ -24,15 +24,15 @@ async function getClientData(id: string) {
       const client = await prisma.client.findUnique({
         where: { id: clientId },
         include: {
-          history: {
-            orderBy: { createdAt: 'desc' },
+          ClientHistory: {
+            orderBy: { createdat: 'desc' },
             take: 10
           },
-          payments: {
-            orderBy: { paymentDate: 'desc' },
+          Payment: {
+            orderBy: { paymentdate: 'desc' },
             take: 5
           },
-          presences: {
+          Presence: {
             orderBy: { time: 'desc' },
             take: 10
           }
@@ -69,7 +69,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
               Client #{client.id}
             </h1>
             <p className="mt-1 text-sm text-yellow-600">
-              {client.fullName}
+              {client.fullname}
             </p>
           </div>
           <div className="flex gap-2">
@@ -88,7 +88,7 @@ export default async function ClientDetailPage({ params }: PageProps) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="text-sm font-medium text-gray-700">Nom complet</label>
-              <p className="text-gray-900">{client.fullName}</p>
+              <p className="text-gray-900">{client.fullname}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Email</label>
@@ -101,22 +101,22 @@ export default async function ClientDetailPage({ params }: PageProps) {
             <div>
               <label className="text-sm font-medium text-gray-700">Date de naissance</label>
               <p className="text-gray-900">
-                {client.dateOfBirth 
-                  ? new Date(client.dateOfBirth).toLocaleDateString('fr-FR')
+                {client.dateofbirth 
+                  ? new Date(client.dateofbirth).toLocaleDateString('fr-FR')
                   : "—"
                 }
               </p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">N° Carte Nationale</label>
-              <p className="text-gray-900">{client.nationalId || "—"}</p>
+              <p className="text-gray-900">{client.nationalid || "—"}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Date d'inscription</label>
               <p className="text-gray-900">
-                {client.registrationDate 
-                  ? new Date(client.registrationDate).toLocaleDateString('fr-FR')
-                  : new Date(client.createdAt).toLocaleDateString('fr-FR')
+                {client.registrationdate 
+                  ? new Date(client.registrationdate).toLocaleDateString('fr-FR')
+                  : client.createdat ? new Date(client.createdat).toLocaleDateString('fr-FR') : '—'
                 }
               </p>
             </div>
@@ -136,25 +136,25 @@ export default async function ClientDetailPage({ params }: PageProps) {
             <div>
               <label className="text-sm font-medium text-gray-700">Période d'abonnement</label>
               <p className="text-gray-900">
-                {client.subscriptionPeriod || "—"}
+                {client.subscriptionperiod || "—"}
               </p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Promotion</label>
               <p className="text-gray-900">
-                {client.hasPromotion ? "Oui" : "Non"}
-                {client.promotionPeriod && ` (${client.promotionPeriod})`}
+                {client.haspromotion ? "Oui" : "Non"}
+                {client.promotionperiod && ` (${client.promotionperiod})`}
               </p>
             </div>
           </div>
         </section>
 
         {/* Recent Payments */}
-        {client.payments && client.payments.length > 0 && (
+        {client.Payment && client.Payment.length > 0 && (
           <section className="rounded-xl border border-yellow-300 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Paiements récents</h2>
             <div className="space-y-3">
-              {client.payments.map((payment: any) => (
+              {client.Payment.map((payment: any) => (
                 <div key={payment.id} className="rounded-lg border p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -162,15 +162,15 @@ export default async function ClientDetailPage({ params }: PageProps) {
                         {payment.amount?.toLocaleString('fr-FR')} TND
                       </p>
                       <p className="text-sm text-gray-600">
-                        Période: {payment.subscriptionPeriod}
+                        Période: {payment.subscriptionperiod}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-600">
-                        {new Date(payment.paymentDate).toLocaleDateString('fr-FR')}
+                        {new Date(payment.paymentdate).toLocaleDateString('fr-FR')}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Prochaine échéance: {new Date(payment.nextPaymentDate).toLocaleDateString('fr-FR')}
+                        Prochaine échéance: {new Date(payment.nextpaymentdate).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
                   </div>
@@ -184,11 +184,11 @@ export default async function ClientDetailPage({ params }: PageProps) {
         )}
 
         {/* Recent Presences */}
-        {client.presences && client.presences.length > 0 && (
+        {client.Presence && client.Presence.length > 0 && (
           <section className="rounded-xl border border-yellow-300 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Présences récentes</h2>
             <div className="space-y-2">
-              {client.presences.map((presence: any) => (
+              {client.Presence.map((presence: any) => (
                 <div key={presence.id} className="flex items-center justify-between rounded-lg border p-3">
                   <p className="font-medium text-gray-900">
                     {new Date(presence.time).toLocaleDateString('fr-FR')}
@@ -203,18 +203,18 @@ export default async function ClientDetailPage({ params }: PageProps) {
         )}
 
         {/* History */}
-        {client.history && client.history.length > 0 && (
+        {client.ClientHistory && client.ClientHistory.length > 0 && (
           <section className="rounded-xl border border-yellow-300 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">Historique des modifications</h2>
             <div className="space-y-3">
-              {client.history.map((entry: any) => (
+              {client.ClientHistory.map((entry: any) => (
                 <div key={entry.id} className="rounded-lg border p-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-medium text-gray-900">{entry.action}</p>
                       <p className="text-sm text-gray-600">
-                        {new Date(entry.createdAt).toLocaleDateString('fr-FR')} à{' '}
-                        {new Date(entry.createdAt).toLocaleTimeString('fr-FR')}
+                        {new Date(entry.createdat).toLocaleDateString('fr-FR')} à{' '}
+                        {new Date(entry.createdat).toLocaleTimeString('fr-FR')}
                       </p>
                     </div>
                   </div>
@@ -238,15 +238,15 @@ export default async function ClientDetailPage({ params }: PageProps) {
             <div>
               <label className="text-sm font-medium text-gray-700">Créé le</label>
               <p className="text-gray-900">
-                {new Date(client.createdAt).toLocaleDateString('fr-FR')} à{' '}
-                {new Date(client.createdAt).toLocaleTimeString('fr-FR')}
+                {client.createdat ? new Date(client.createdat).toLocaleDateString('fr-FR') : '—'} à{' '}
+                {client.createdat ? new Date(client.createdat).toLocaleTimeString('fr-FR') : '—'}
               </p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">Dernière modification</label>
               <p className="text-gray-900">
-                {new Date(client.updatedAt).toLocaleDateString('fr-FR')} à{' '}
-                {new Date(client.updatedAt).toLocaleTimeString('fr-FR')}
+                {client.updatedat ? new Date(client.updatedat).toLocaleDateString('fr-FR') : '—'} à{' '}
+                {client.updatedat ? new Date(client.updatedat).toLocaleTimeString('fr-FR') : '—'}
               </p>
             </div>
           </div>
@@ -269,7 +269,7 @@ export async function generateMetadata({ params }: PageProps) {
   }
 
   return {
-    title: `Client #${client.id} - ${client.fullName}`,
-    description: `Détails du client ${client.fullName} - ID: ${client.id}`,
+    title: `Client #${client.id} - ${client.fullname}`,
+    description: `Détails du client ${client.fullname} - ID: ${client.id}`,
   };
 }

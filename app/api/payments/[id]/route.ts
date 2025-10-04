@@ -8,8 +8,8 @@ export async function GET(req: Request, { params }: Params) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   const includeDeleted = new URL(req.url).searchParams.get("includeDeleted") === "1";
-  const payment = await prisma.payment.findUnique({ where: { id }, include: { client: true, promotion: true } });
-  if (!includeDeleted && payment?.deletedAt) return NextResponse.json({ message: "Not found" }, { status: 404 });
+  const payment = await prisma.payment.findUnique({ where: { id }, include: { Client: true, Promotion: true } });
+  if (!includeDeleted && payment?.deletedat) return NextResponse.json({ message: "Not found" }, { status: 404 });
   if (!payment) return NextResponse.json({ message: "Not found" }, { status: 404 });
   return NextResponse.json(payment);
 }

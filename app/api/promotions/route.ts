@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const promotions = await prisma.promotion.findMany({ orderBy: { createdAt: "desc" } });
+    const promotions = await prisma.promotion.findMany({ orderBy: { createdat: "desc" } });
     return NextResponse.json(promotions);
   } catch (e: unknown) {
     console.error("GET /api/promotions error:", e);
@@ -47,16 +47,16 @@ export async function POST(request: Request) {
       data: {
         name,
         notes: data.notes?.toString().trim() ? data.notes.toString().trim() : null,
-        fixedPrice: fixedPriceNum,
-        subscriptionMonths,
-        startDate,
-        endDate,
+        fixedprice: fixedPriceNum,
+        subscriptionmonths: subscriptionMonths,
+        startdate: startDate,
+        enddate: endDate,
         active: data.active ?? true,
       },
     });
     try {
       await prisma.promotionHistory.create({
-        data: { promotionId: created.id, action: "CREATE", changes: JSON.stringify(created) },
+        data: { promotionid: created.id, action: "CREATE", changes: JSON.stringify(created) },
       });
     } catch (histErr) {
       console.warn("POST /api/promotions history log failed:", histErr);

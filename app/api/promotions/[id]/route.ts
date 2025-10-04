@@ -55,16 +55,16 @@ export async function PUT(request: Request, { params }: Params) {
             data: {
                 name,
                 notes: data.notes?.toString().trim() ? data.notes.toString().trim() : null,
-                fixedPrice: fixedPriceNum,
-                subscriptionMonths,
-                startDate,
-                endDate,
+                fixedprice: fixedPriceNum,
+                subscriptionmonths: subscriptionMonths,
+                startdate: startDate,
+                enddate: endDate,
                 active: data.active ?? true,
             },
         });
 
         await prisma.promotionHistory.create({
-            data: { promotionId: id, action: "UPDATE", changes: JSON.stringify(updated) },
+            data: { promotionid: id, action: "UPDATE", changes: JSON.stringify(updated) },
         });
         return NextResponse.json(updated);
     } catch (e: unknown) {

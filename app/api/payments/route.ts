@@ -74,17 +74,17 @@ export async function POST(request: Request) {
       if (!p) return NextResponse.json({ error: "Promotion introuvable" }, { status: 400 });
       // Check active window if provided
       const now = paymentDate;
-      const startsOk = !p.startDate || new Date(p.startDate) <= now;
-      const endsOk = !p.endDate || now <= new Date(p.endDate);
+      const startsOk = !p.startdate || new Date(p.startdate) <= now;
+      const endsOk = !p.enddate || now <= new Date(p.enddate);
       if (!p.active || !startsOk || !endsOk) {
         return NextResponse.json({ error: "Promotion inactive ou hors période" }, { status: 400 });
       }
-      promotion = { id: p.id, fixedPrice: p.fixedPrice, subscriptionMonths: p.subscriptionMonths };
+      promotion = { id: p.id, fixedPrice: p.fixedprice, subscriptionMonths: p.subscriptionmonths };
       // Always enforce amount from promotion when a promotion is selected
-      amount = p.fixedPrice;
+      amount = p.fixedprice;
       // If promotion defines subscriptionMonths, compute nextPaymentDate from paymentDate accordingly
-      if (p.subscriptionMonths && Number.isFinite(p.subscriptionMonths) && p.subscriptionMonths > 0) {
-        nextPaymentDate = addMonths(paymentDate, Number(p.subscriptionMonths));
+      if (p.subscriptionmonths && Number.isFinite(p.subscriptionmonths) && p.subscriptionmonths > 0) {
+        nextPaymentDate = addMonths(paymentDate, Number(p.subscriptionmonths));
       }
     }
 
