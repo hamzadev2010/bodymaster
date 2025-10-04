@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-export const fetchCache = "force-no-store";
-export const revalidate = 0;
+export const revalidate = 30;
 
 // Lazy import Prisma to avoid build-time initialization
 async function getPrisma() {
@@ -14,13 +11,18 @@ async function getPrisma() {
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
-	const { id: idStr } = await params;
-	const id = Number(idStr);
-	
-	const prisma = await getPrisma();
-	const coach = await prisma.coach.findUnique({ where: { id } });
-	if (!coach) return NextResponse.json({ message: "Not found" }, { status: 404 });
-	return NextResponse.json(coach);
+	try {
+		const { id: idStr } = await params;
+		const id = Number(idStr);
+		
+		const prisma = await getPrisma();
+		const coach = await prisma.coach.findUnique({ where: { id } });
+		if (!coach) return NextResponse.json({ message: "Not found" }, { status: 404 });
+		return NextResponse.json(coach);
+	} catch (error) {
+		console.error("Error fetching coach:", error);
+		return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+	}
 }
 
 export async function PUT(request: Request, { params }: Params) {

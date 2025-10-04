@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-export const fetchCache = "force-no-store";
-export const revalidate = 0;
+export const revalidate = 30;
 
 // Dynamic route handler that prevents build-time analysis
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

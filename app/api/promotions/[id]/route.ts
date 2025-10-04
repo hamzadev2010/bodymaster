@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-export const fetchCache = "force-no-store";
-export const revalidate = 0;
+export const revalidate = 30;
 
 // Lazy import Prisma to avoid build-time initialization
 async function getPrisma() {

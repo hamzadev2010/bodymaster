@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
-export const fetchCache = "force-no-store";
-export const revalidate = 0;
+export const revalidate = 30;
 
 // Lazy import Prisma to avoid build-time initialization
 async function getPrisma() {
@@ -12,6 +9,20 @@ async function getPrisma() {
 }
 
 type Params = { params: Promise<{ id: string }> };
+
+export async function GET(_req: Request, { params }: Params) {
+  try {
+    const { id: idStr } = await params;
+    const id = Number(idStr);
+    const prisma = await getPrisma();
+    const presence = await prisma.presence.findUnique({ where: { id } });
+    if (!presence) return NextResponse.json({ message: "Not found" }, { status: 404 });
+    return NextResponse.json(presence);
+  } catch (error) {
+    console.error("Error fetching presence:", error);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}
 
 export async function DELETE(_req: Request, { params }: Params) {
   try {
