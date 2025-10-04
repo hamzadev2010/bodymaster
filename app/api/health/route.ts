@@ -1,42 +1,29 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 
+// Vercel-compatible configuration
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
 
 export async function GET() {
   try {
-    // Quick DB ping
+    // Lazy import Prisma only at runtime to prevent build-time issues
+    const { default: prisma } = await import("@/app/lib/prisma");
+    
+    // Simple health check query
     await prisma.$queryRaw`SELECT 1`;
-
-    // List tables (SQLite-specific)
-    const tables = (await prisma.$queryRawUnsafe<{ name: string }[]>(
-      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    )).map((r) => r.name);
-
-    // Try minimal counts to validate key tables (ignore errors)
-    const counts: Record<string, number | string> = {};
-    const tryCount = async (name: string) => {
-      try {
-        const row = await prisma.$queryRawUnsafe<{ c: number }[]>(`SELECT COUNT(*) as c FROM ${name} LIMIT 1`);
-        counts[name] = Number(row?.[0]?.c ?? 0);
-      } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : String(e);
-        counts[name] = `err: ${errorMessage}`;
-      }
-    };
-    for (const t of ["Client", "Coach", "Payment", "Promotion", "Presence", "ClientHistory", "CoachHistory", "PaymentHistory"]) {
-      await tryCount(t).catch(() => {});
-    }
-
-    const hints: string[] = [];
-    if (!tables.includes("Presence")) {
-      hints.push("Table Presence manquante: exécutez les migrations Prisma");
-    }
-    return NextResponse.json({ ok: true, databaseUrl: process.env.DATABASE_URL, tables, counts, hints });
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : "unknown";
-    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
+    
+    return NextResponse.json({ 
+      status: "healthy", 
+      timestamp: new Date().toISOString(),
+      database: "connected"
+    });
+  } catch (error) {
+    console.error("Health check error:", error);
+    return NextResponse.json({ 
+      status: "unhealthy", 
+      timestamp: new Date().toISOString(),
+      error: "Database connection failed"
+    }, { status: 503 });
   }
 }
-

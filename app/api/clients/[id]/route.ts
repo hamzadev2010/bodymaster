@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-export const revalidate = 30;
+// Vercel-compatible configuration
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
 
 // Dynamic route handler that prevents build-time analysis
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

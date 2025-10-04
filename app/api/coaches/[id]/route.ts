@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-export const revalidate = 30;
+// Vercel-compatible configuration
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
 
 // Lazy import Prisma to avoid build-time initialization
 async function getPrisma() {
