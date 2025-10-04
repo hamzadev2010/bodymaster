@@ -1,93 +1,95 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
+import type { CSVData, CSVRow, DateInput, DateFormatter, CSVFormatter, CellFormatter, SafeStringFormatter } from "@/app/types";
 
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/payments/[id]?includeDeleted=1
- */
-export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  if (isNaN(id)) return NextResponse.json({ message: "Invalid payment ID" }, { status: 400 });
-
-  const includeDeleted = new URL(req.url).searchParams.get("includeDeleted") === "1";
-
+export async function GET() {
   try {
-    const payment = await prisma.payment.findUnique({
-      where: { id },
-      include: {
-        Client: true,      // ✅ Must match schema exactly
-        Promotion: true,   // ✅ Must match schema exactly
-      },
-    });
-
-    if (!payment || (!includeDeleted && payment.deletedat)) {
-      return NextResponse.json({ message: "Not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(payment);
-  } catch (error) {
-    console.error("Error fetching payment:", error);
-    return NextResponse.json({ message: "Server error fetching payment" }, { status: 500 });
-  }
-}
-
-/**
- * DELETE /api/payments/[id]
- */
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  if (isNaN(id)) return NextResponse.json({ message: "Invalid payment ID" }, { status: 400 });
-
-  try {
-    const existing = await prisma.payment.findUnique({ where: { id } });
-    if (!existing) return NextResponse.json({ message: "Payment not found" }, { status: 404 });
-
-    const deleted = await prisma.payment.update({
-      where: { id },
-      data: { deletedat: new Date() },
+    // Export payments as CSV
+    const payments = await prisma.payment.findMany({
       include: {
         Client: true,
         Promotion: true,
       },
+      orderBy: { createdat: "desc" },
     });
-
-    return NextResponse.json(deleted);
-  } catch (error) {
-    console.error("Error deleting payment:", error);
-    return NextResponse.json({ message: "Server error deleting payment" }, { status: 500 });
-  }
-}
-
-/**
- * PATCH /api/payments/[id]
- */
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const id = Number(params.id);
-  if (isNaN(id)) return NextResponse.json({ message: "Invalid payment ID" }, { status: 400 });
-
-  try {
-    const body = await req.json();
-
-    const allowedFields = ["amount", "notes", "nextpaymentdate", "subscriptionperiod", "promotionid"];
-    const data: Record<string, any> = {};
-
-    for (const key of allowedFields) {
-      if (body[key] !== undefined && body[key] !== null) data[key] = body[key];
-    }
-
-    const updated = await prisma.payment.update({
-      where: { id },
-      data,
-      include: {
-        Client: true,
-        Promotion: true,
+    
+    const header: CSVRow = [
+      "id",
+      "clientid",
+      "clientname",
+      "amount",
+      "paymentdate",
+      "nextpaymentdate",
+      "subscriptionperiod",
+      "promotionid",
+      "promotionname",
+      "notes",
+      "createdat",
+      "updatedat",
+    ];
+    
+    const rows: CSVData = payments.map((p: any) => [
+      p.id.toString(),
+      p.clientid?.toString() || "",
+      safe(p.Client?.fullname || ""),
+      p.amount.toString(),
+      toISODate(p.paymentdate),
+      toISODate(p.nextpaymentdate),
+      safe(p.subscriptionperiod),
+      p.promotionid?.toString() || "",
+      safe(p.Promotion?.name || ""),
+      safe(p.notes),
+      toISODate(p.createdat),
+      toISODate(p.updatedat),
+    ]);
+    
+    const csv = toCSV([header, ...rows]);
+    return new NextResponse(csv, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename=payments.csv`,
       },
     });
-
-    return NextResponse.json(updated);
   } catch (error) {
-    console.error("Error updating payment:", error);
-    return NextResponse.json({ message: "Server error updating payment" }, { status: 500 });
+    // Handle database connection errors during build
+    console.error('Database connection error:', error);
+    return new NextResponse('Database not available', {
+      status: 503,
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    });
   }
 }
+
+const toISODate: DateFormatter = (d: DateInput): string => {
+  try {
+    if (!d) return "";
+    const dt = new Date(d);
+    return isNaN(dt.getTime()) ? "" : dt.toISOString();
+  } catch {
+    return "";
+  }
+};
+
+const toCSV: CSVFormatter = (rows: CSVData): string => {
+  return rows
+    .map((r) => r.map((cell) => formatCSVCell(cell)).join(","))
+    .join("\n");
+};
+
+const formatCSVCell: CellFormatter = (v: unknown): string => {
+  const s = (v ?? "").toString();
+  if (s.includes(",") || s.includes("\n") || s.includes('"')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+};
+
+const safe: SafeStringFormatter = (v: unknown): string => {
+  return (v ?? "").toString().replace(/[\r\n]+/g, " ").trim();
+};

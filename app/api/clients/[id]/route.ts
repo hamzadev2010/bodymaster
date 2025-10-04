@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 import type { DateInput } from "@/app/types";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 function parseDateLoose(input: DateInput): Date | null {

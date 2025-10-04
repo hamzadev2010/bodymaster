@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/app/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // GET /api/presence?year=YYYY&month=MM&day=DD
