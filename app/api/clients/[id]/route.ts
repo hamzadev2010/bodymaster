@@ -1,66 +1,38 @@
 import { NextResponse } from "next/server";
-import type { DateInput } from "@/app/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-// Explicitly disable static generation
-export const dynamicParams = true;
-
-// Lazy import Prisma to avoid build-time initialization
-async function getPrisma() {
-  const { default: prisma } = await import("@/app/lib/prisma");
-  return prisma;
-}
-
-function parseDateLoose(input: DateInput): Date | null {
-  if (!input) return null;
-  try {
-    const raw = String(input).trim();
-    if (!raw) return null;
-    const m1 = raw.match(/^([0-3]?\d)\/([0-1]?\d)\/(\d{4})$/);
-    if (m1) {
-      const [_match, d, m, y] = m1;
-      const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const dt = new Date(iso);
-      return isNaN(dt.getTime()) ? null : dt;
-    }
-    const dt = new Date(raw);
-    return isNaN(dt.getTime()) ? null : dt;
-  } catch {
-    return null;
-  }
-}
-
-type Params = { params: Promise<{ id: string }> };
-
-export async function GET(req: Request, { params }: Params) {
+// Dynamic route handler that prevents build-time analysis
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   // Force dynamic execution
-  const headers = new Headers();
-  headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  const url = new URL(req.url);
+  const searchParams = url.searchParams;
   
   try {
-    const { id: idStr } = await params;
+    const { id } = await params;
     
     // Validate id parameter
-    if (!idStr || typeof idStr !== 'string') {
+    if (!id || typeof id !== 'string') {
       return NextResponse.json({ error: "Client ID is required" }, { status: 400 });
     }
     
-    const id = Number(idStr);
+    const clientId = Number(id);
     
     // Check if id is a valid number
-    if (isNaN(id) || !Number.isInteger(id) || id <= 0) {
+    if (isNaN(clientId) || !Number.isInteger(clientId) || clientId <= 0) {
       return NextResponse.json({ error: "Invalid client ID" }, { status: 400 });
     }
     
-    const includeDeleted = new URL(req.url).searchParams.get("includeDeleted") === "1";
+    const includeDeleted = searchParams.get("includeDeleted") === "1";
     
-    const prisma = await getPrisma();
+    // Lazy import Prisma only at runtime
+    const { default: prisma } = await import("@/app/lib/prisma");
+    
     const client = await prisma.client.findUnique({ 
-      where: { id },
+      where: { id: clientId },
       include: {
         ClientHistory: {
           orderBy: { createdat: 'desc' },
@@ -99,141 +71,45 @@ export async function GET(req: Request, { params }: Params) {
   }
 }
 
-export async function PUT(request: Request, { params }: Params) {
+// Simplified PUT handler
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: idStr } = await params;
-    const id = Number(idStr);
-    const data = await request.json();
+    const { id } = await params;
+    const clientId = Number(id);
     
-    const prisma = await getPrisma();
-
-    const fullName = String(data.fullName || "").trim().toUpperCase();
-    if (!fullName) {
-      return NextResponse.json({ error: "Le nom complet est requis" }, { status: 400 });
+    if (isNaN(clientId) || !Number.isInteger(clientId) || clientId <= 0) {
+      return NextResponse.json({ error: "Invalid client ID" }, { status: 400 });
     }
-
-    const email = data.email?.toString().trim() || null;
-    const rawNotes = data.notes?.toString().trim() || null;
-    if (rawNotes && rawNotes.length > 75) {
-      return NextResponse.json({ error: "Les notes ne doivent pas dépasser 75 caractères" }, { status: 400 });
-    }
-    const nationalId = data.nationalId?.toString().trim().toUpperCase() || null;
-
-    // Uniqueness: no other active client with same fullName or nationalId
-    const existing = await prisma.client.findFirst({
-      where: {
-        id: { not: id },
-        deletedat: null,
-        OR: [
-          { fullname: fullName },
-          ...(nationalId ? [{ nationalid: nationalId }] : []),
-        ],
+    
+    const data = await req.json();
+    
+    // Lazy import Prisma only at runtime
+    const { default: prisma } = await import("@/app/lib/prisma");
+    
+    const updated = await prisma.client.update({
+      where: { id: clientId },
+      data: {
+        fullname: data.fullName ? String(data.fullName).trim().toUpperCase() : undefined,
+        email: data.email ? String(data.email).trim() : undefined,
+        phone: data.phone ? String(data.phone).trim() : undefined,
+        notes: data.notes ? String(data.notes).trim() : undefined,
       },
-      select: { id: true },
+      include: { ClientHistory: true },
     });
-    if (existing) {
-      return NextResponse.json({ error: "Un autre client avec le même nom complet ou N° carte nationale existe déjà" }, { status: 409 });
-    }
-
-    // Validate age >= 13 if DOB provided
-    const dob = parseDateLoose(data.dateOfBirth);
-    if (dob) {
-      const cutoff = new Date();
-      cutoff.setFullYear(cutoff.getFullYear() - 13);
-      if (dob > cutoff) {
-        return NextResponse.json({ error: "L'âge minimum est 13 ans" }, { status: 400 });
-      }
-    }
-
-    const current = await prisma.client.findUnique({ where: { id }, select: { id: true, fullname: true } });
-    if (!current) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
-
-    // Restrict fullName change to once per 15 days
-    if (fullName !== current.fullname) {
-      const hist = await prisma.clientHistory.findMany({
-        where: { clientid: id },
-        orderBy: { createdat: "desc" },
-        take: 50,
-      });
-      // Find the most recent entry where fullName changed (compare consecutive snapshots)
-      let lastChangeAt: Date | null = null;
-      for (let i = 0; i < hist.length - 1; i++) {
-        try {
-          const a = JSON.parse(hist[i].changes || "{}");
-          const b = JSON.parse(hist[i+1].changes || "{}");
-          if (a?.fullname && b?.fullname && a.fullname !== b.fullname) {
-            const createdAt = hist[i]?.createdat;
-            if (createdAt) {
-              lastChangeAt = new Date(createdAt);
-            }
-            break;
-          }
-        } catch {}
-      }
-      if (!lastChangeAt && hist.length > 0) {
-        // Also compare with current DB value if only one history entry exists
-        try {
-          const a = JSON.parse(hist[0].changes || "{}");
-          if (a?.fullname && a.fullname === current.fullname) {
-            // Name was set in last update; treat that time as last change
-            const createdAt = hist[0]?.createdat;
-            if (createdAt) {
-              lastChangeAt = new Date(createdAt);
-            }
-          }
-        } catch {}
-      }
-      if (lastChangeAt) {
-        const days15 = 15 * 24 * 60 * 60 * 1000;
-        if (Date.now() - lastChangeAt.getTime() < days15) {
-          return NextResponse.json({ error: "Le nom complet ne peut être modifié qu'une seule fois tous les 15 jours" }, { status: 429 });
-        }
-      }
-    }
-
-    const payload = {
-      fullname: fullName,
-      firstname: data.firstName?.toString().trim() ? data.firstName.toString().trim() : null,
-      lastname: data.lastName?.toString().trim() ? data.lastName.toString().trim() : null,
-      email,
-      phone: data.phone?.toString().trim() ? data.phone.toString().trim().replace(/[^0-9]/g, "").slice(0,12) : null,
-      notes: rawNotes,
-      dateofbirth: dob,
-      nationalid: nationalId,
-      registrationdate: parseDateLoose(data.registrationDate) || undefined,
-      subscriptionperiod: data.subscriptionPeriod ?? null,
-      haspromotion: Boolean(data.hasPromotion),
-      promotionperiod: data.promotionPeriod ?? null,
-    } as const;
-
-    try {
-      const updated = await prisma.client.update({
-        where: { id },
-        data: payload,
-        include: { ClientHistory: true },
-      });
-      await prisma.clientHistory.create({
-        data: { clientid: id, action: "UPDATE", changes: JSON.stringify(updated) },
-      });
+    
+    await prisma.clientHistory.create({
+      data: { clientid: clientId, action: "UPDATE", changes: JSON.stringify(updated) },
+    });
+    
       return NextResponse.json(updated);
-    } catch (e: unknown) {
-      if (e && typeof e === 'object' && 'code' in e && e.code === "P2002" && 
-          'meta' in e && e.meta && typeof e.meta === 'object' && 'target' in e.meta && 
-          Array.isArray(e.meta.target) && e.meta.target.includes("email")) {
-        return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
-      }
-      console.error("PUT /api/clients/[id] error:", e);
-      const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+  } catch (error) {
+    console.error('PUT /api/clients/[id] error:', error);
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
+// DELETE handler
 export async function DELETE() {
   return new NextResponse("Method Not Allowed", { status: 405 });
 }
-
-
