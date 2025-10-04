@@ -1,14 +1,23 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
+// Lazy import Prisma to avoid build-time initialization
+async function getPrisma() {
+  const { default: prisma } = await import("@/app/lib/prisma");
+  return prisma;
+}
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
 	const { id: idStr } = await params;
 	const id = Number(idStr);
+	
+	const prisma = await getPrisma();
 	const coach = await prisma.coach.findUnique({ where: { id } });
 	if (!coach) return NextResponse.json({ message: "Not found" }, { status: 404 });
 	return NextResponse.json(coach);
@@ -18,6 +27,8 @@ export async function PUT(request: Request, { params }: Params) {
 	const { id: idStr } = await params;
 	const id = Number(idStr);
 	const data = await request.json();
+	
+	const prisma = await getPrisma();
 	const updated = await prisma.coach.update({
 		where: { id },
 		data: {

@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 import type { DateInput } from "@/app/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
+// Explicitly disable static generation
+export const dynamicParams = true;
+
+// Lazy import Prisma to avoid build-time initialization
+async function getPrisma() {
+  const { default: prisma } = await import("@/app/lib/prisma");
+  return prisma;
+}
 
 function parseDateLoose(input: DateInput): Date | null {
   if (!input) return null;
@@ -27,6 +37,10 @@ function parseDateLoose(input: DateInput): Date | null {
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(req: Request, { params }: Params) {
+  // Force dynamic execution
+  const headers = new Headers();
+  headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  
   try {
     const { id: idStr } = await params;
     
@@ -44,6 +58,7 @@ export async function GET(req: Request, { params }: Params) {
     
     const includeDeleted = new URL(req.url).searchParams.get("includeDeleted") === "1";
     
+    const prisma = await getPrisma();
     const client = await prisma.client.findUnique({ 
       where: { id },
       include: {
@@ -89,6 +104,8 @@ export async function PUT(request: Request, { params }: Params) {
     const { id: idStr } = await params;
     const id = Number(idStr);
     const data = await request.json();
+    
+    const prisma = await getPrisma();
 
     const fullName = String(data.fullName || "").trim().toUpperCase();
     if (!fullName) {

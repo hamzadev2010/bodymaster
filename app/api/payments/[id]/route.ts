@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
+// Lazy import Prisma to avoid build-time initialization
+async function getPrisma() {
+  const { default: prisma } = await import("@/app/lib/prisma");
+  return prisma;
+}
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,6 +17,7 @@ export async function GET(req: Request, { params }: Params) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   const includeDeleted = new URL(req.url).searchParams.get("includeDeleted") === "1";
+  const prisma = await getPrisma();
   const payment = await prisma.payment.findUnique({ where: { id }, include: { Client: true, Promotion: true } });
   if (!includeDeleted && payment?.deletedat) return NextResponse.json({ message: "Not found" }, { status: 404 });
   if (!payment) return NextResponse.json({ message: "Not found" }, { status: 404 });
@@ -21,6 +29,7 @@ export async function PUT(request: Request, { params }: Params) {
   const id = Number(idStr);
   const data = await request.json();
 
+  const prisma = await getPrisma();
   const updated = await prisma.payment.update({
     where: { id },
     data: {
