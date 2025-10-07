@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  isdeleted Boolean?  @default(false)
+  deletedat DateTime? @db.Timestamp(6)
+}
+
+model Client {
+  id                 Int             @id @default(autoincrement())
+  fullname           String
+  firstname          String?
+  lastname           String?
+  email              String?         @unique
+  phone              String?
+  notes              String?
+  dateofbirth        DateTime?       @db.Timestamp(6)
+  nationalid         String?
+  registrationdate   DateTime?       @default(now()) @db.Timestamp(6)
+  subscriptionperiod String?
+  haspromotion       Boolean?        @default(false)
+  promotionperiod    String?
+  createdat          DateTime?       @default(now()) @db.Timestamp(6)
+  updatedat          DateTime?       @default(now()) @db.Timestamp(6)
+  deletedat          DateTime?       @db.Timestamp(6)
+  isdeleted          Boolean?        @default(false)
+  ClientHistory      ClientHistory[]
+  Payment            Payment[]
+  Presence           Presence[]
+}
+
+model Coach {
+  id                 Int            @id @default(autoincrement())
+  fullname           String
+  specialty          String?
+  email              String?        @unique
+  phone              String?
+  notes              String?
+  dateofbirth        DateTime?      @db.Timestamp(6)
+  nationalid         String?
+  registrationdate   DateTime?      @default(now()) @db.Timestamp(6)
+  endofservicedate   DateTime?      @db.Timestamp(6)
+  subscriptionperiod String?
+  haspromotion       Boolean?       @default(false)
+  promotionperiod    String?
+  createdat          DateTime?      @default(now()) @db.Timestamp(6)
+  updatedat          DateTime?      @default(now()) @db.Timestamp(6)
+  deletedat          DateTime?      @db.Timestamp(6)
+  isdeleted          Boolean?       @default(false)
+  CoachHistory       CoachHistory[]
+}
+
+model Promotion {
+  id                 Int                @id @default(autoincrement())
+  name               String
+  notes              String?
+  fixedprice         Float
+  subscriptionmonths Int?
+  startdate          DateTime           @db.Timestamp(6)
+  enddate            DateTime?          @db.Timestamp(6)
+  active             Boolean?           @default(true)
+  createdat          DateTime?          @default(now()) @db.Timestamp(6)
+  updatedat          DateTime?          @default(now()) @db.Timestamp(6)
+  deletedat          DateTime?          @db.Timestamp(6)
+  isdeleted          Boolean?           @default(false)
+  Payment            Payment[]
+  PromotionHistory   PromotionHistory[]
+}
+
+model ClientHistory {
+  id        Int       @id @default(autoincrement())
+  clientid  Int?
+  action    String
+  changes   String?
+  createdat DateTime? @default(now()) @db.Timestamp(6)
+  Client    Client?   @relation(fields: [clientid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model CoachHistory {
+  id        Int       @id @default(autoincrement())
+  coachid   Int?
+  action    String
+  changes   String?
+  createdat DateTime? @default(now()) @db.Timestamp(6)
+  Coach     Coach?    @relation(fields: [coachid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model Payment {
+  id                 Int              @id @default(autoincrement())
+  clientid           Int?
+  promotionid        Int?
+  amount             Float
+  paymentdate        DateTime?        @default(now()) @db.Timestamp(6)
+  nextpaymentdate    DateTime?        @db.Timestamp(6)
+  subscriptionperiod String
+  notes              String?
+  createdat          DateTime?        @default(now()) @db.Timestamp(6)
+  updatedat          DateTime?        @default(now()) @db.Timestamp(6)
+  deletedat          DateTime?        @db.Timestamp(6)
+  isdeleted          Boolean?         @default(false)
+  Client             Client?          @relation(fields: [clientid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Promotion          Promotion?       @relation(fields: [promotionid], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  PaymentHistory     PaymentHistory[]
+}
+
+model PromotionHistory {
+  id          Int        @id @default(autoincrement())
+  promotionid Int?
+  action      String
+  changes     String?
+  createdat   DateTime?  @default(now()) @db.Timestamp(6)
+  Promotion   Promotion? @relation(fields: [promotionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model PaymentHistory {
+  id        Int       @id @default(autoincrement())
+  paymentid Int?
+  action    String
+  changes   String?
+  createdat DateTime? @default(now()) @db.Timestamp(6)
+  Payment   Payment?  @relation(fields: [paymentid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model Presence {
+  id        Int       @id @default(autoincrement())
+  clientid  Int?
+  time      DateTime? @default(now()) @db.Timestamp(6)
+  createdat DateTime? @default(now()) @db.Timestamp(6)
+  isdeleted Boolean?  @default(false)
+  deletedat DateTime? @db.Timestamp(6)
+  Client    Client?   @relation(fields: [clientid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([time], map: "idx_presence_time")
+}
