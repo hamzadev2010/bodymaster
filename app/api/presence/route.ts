@@ -40,11 +40,19 @@ export async function GET(request: Request) {
   if (start && end) where.time = { gte: start, lt: end };
 
   try {
+    // Check if database URL is available
+    if (!process.env.DATABASE_URL) {
+      console.error("DATABASE_URL environment variable is not set");
+      return NextResponse.json({ error: "Database configuration missing" }, { status: 503 });
+    }
+
+    console.log("Fetching presence data from database...");
     const presences = await prisma.presence.findMany({
       where,
       include: { Client: true },
       orderBy: { time: "desc" },
     });
+    console.log(`Successfully fetched ${presences.length} presence entries`);
     return NextResponse.json(presences);
   } catch (e: unknown) {
     // Most common cause: database not migrated (table Presence missing)
@@ -78,7 +86,7 @@ export async function POST(request: Request) {
       const start = new Date(Date.UTC(y, m, d, 0, 0, 0));
       const end = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
       const existingToday = await prisma.presence.findFirst({
-        where: { clientid: clientId, time: { gte: start, lt: end } },
+        where: { clientid: clientId, time: { gte: start, lt: end }, isdeleted: false },
         select: { id: true },
       });
       if (existingToday) {

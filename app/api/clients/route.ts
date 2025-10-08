@@ -38,10 +38,20 @@ function sanitize(input: unknown, { max = 120, pattern }: { max?: number; patter
 
 export async function GET(request: Request) {
   try {
+    // Check if database URL is available
+    if (!process.env.DATABASE_URL) {
+      console.error("DATABASE_URL environment variable is not set");
+      return NextResponse.json({ error: "Database configuration missing" }, { status: 503 });
+    }
+
     const { searchParams } = new URL(request.url);
     const includeDeleted = searchParams.get("includeDeleted") === "1";
     const where = includeDeleted ? {} : { isdeleted: false };
+    
+    console.log("Fetching clients from database...");
     const clients = await prisma.client.findMany({ where, orderBy: { createdat: "desc" } });
+    console.log(`Successfully fetched ${clients.length} clients`);
+    
     // Transform field names to match frontend expectations
     const transformedClients = clients.map(client => ({
       ...client,

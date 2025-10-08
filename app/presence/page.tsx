@@ -46,9 +46,15 @@ export default function PresencePage() {
     void (async () => {
       try {
         const res = await fetch("/api/clients");
-        if (res.ok) setClients(await res.json());
-        else setError("Impossible de charger la liste des clients.");
-      } catch {}
+        if (res.ok) {
+          setClients(await res.json());
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          setError(`Erreur ${res.status}: ${errorData.error || "Impossible de charger la liste des clients."}`);
+        }
+      } catch (err) {
+        setError("Erreur de connexion au serveur.");
+      }
     })();
   }, []);
 
@@ -74,7 +80,8 @@ export default function PresencePage() {
             .map((p: PresenceWithClient) => ({ id: p.id, clientId: p.clientId, clientName: p.client?.fullName || "", timeISO: p.time }));
           setEntries(mapped);
         } else {
-          setError("Impossible de charger les présences.");
+          const errorData = await res.json().catch(() => ({}));
+          setError(`Erreur ${res.status}: ${errorData.error || "Impossible de charger les présences."}`);
         }
       } finally {
         setLoading(false);
@@ -89,7 +96,8 @@ export default function PresencePage() {
     return clients.filter((c) => {
       const name = (c.fullName || "").toLowerCase();
       const phone = (c.phone || "").replace(/\s+/g, "");
-      return name.includes(needle) || phone.includes(needle.replace(/\D/g, ""));
+      const cin = (c.nationalId || "").toLowerCase().replace(/\s+/g, "");
+      return name.includes(needle) || phone.includes(needle.replace(/\D/g, "")) || cin.includes(needle);
     });
   }, [clients, q]);
 
@@ -204,7 +212,7 @@ export default function PresencePage() {
 
         <section className="rounded-xl border border-yellow-300 bg-white p-5 shadow-sm">
           <div className="mb-3">
-            <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400" placeholder="Rechercher par nom ou téléphone..." value={q} onChange={(e)=>setQ(e.target.value)} />
+            <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400" placeholder="Rechercher par nom, téléphone ou CIN..." value={q} onChange={(e)=>setQ(e.target.value)} />
           </div>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map((c) => (
