@@ -1,27 +1,29 @@
 import { NextResponse } from "next/server";
-import db from "@/app/lib/db";
 
+// Vercel-compatible configuration
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const fetchCache = "force-no-store";
 
 export async function GET() {
   try {
-    // Test database connection
-    await db.$queryRaw`SELECT 1`;
+    // Lazy import Prisma only at runtime to prevent build-time issues
+    const { default: prisma } = await import("@/app/lib/prisma");
+    
+    // Simple health check query
+    await prisma.$queryRaw`SELECT 1`;
     
     return NextResponse.json({ 
       status: "healthy", 
-      database: "connected",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      database: "connected"
     });
   } catch (error) {
-    console.error("Health check failed:", error);
-    
+    console.error("Health check error:", error);
     return NextResponse.json({ 
       status: "unhealthy", 
-      database: "disconnected",
-      error: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      error: "Database connection failed"
     }, { status: 503 });
   }
 }

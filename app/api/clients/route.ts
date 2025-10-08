@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import db from "@/app/lib/db";
+import prisma from "@/app/lib/prisma";
 import type { DateInput } from "@/app/types";
 
 export const runtime = "nodejs";
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const where = includeDeleted ? {} : { isdeleted: false };
     
     console.log("Fetching clients from database...");
-    const clients = await db.client.findMany({ where, orderBy: { createdat: "desc" } });
+    const clients = await prisma.client.findMany({ where, orderBy: { createdat: "desc" } });
     console.log(`Successfully fetched ${clients.length} clients`);
     
     // Transform field names to match frontend expectations
@@ -133,9 +133,9 @@ export async function POST(request: Request) {
     } as const;
 
     try {
-      const created = await db.client.create({ data: payload });
+      const created = await prisma.client.create({ data: payload });
       try {
-        await db.clientHistory.create({
+        await prisma.clientHistory.create({
           data: { clientid: created.id, action: "CREATE", changes: JSON.stringify(created) },
         });
       } catch (histErr) {
@@ -173,7 +173,7 @@ export async function DELETE(request: Request) {
     }
 
     // Check if client exists and is not already deleted
-    const client = await db.client.findUnique({
+    const client = await prisma.client.findUnique({
       where: { id: clientId },
       select: { id: true, fullname: true, isdeleted: true }
     });
@@ -187,7 +187,7 @@ export async function DELETE(request: Request) {
     }
 
     // Soft delete the client
-    const updated = await db.client.update({
+    const updated = await prisma.client.update({
       where: { id: clientId },
       data: {
         isdeleted: true,
@@ -198,7 +198,7 @@ export async function DELETE(request: Request) {
 
     // Log the deletion in history
     try {
-      await db.clientHistory.create({
+      await prisma.clientHistory.create({
         data: { 
           clientid: clientId, 
           action: "DELETE", 

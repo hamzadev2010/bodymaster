@@ -14,22 +14,11 @@ const globalForPrisma = globalThis as unknown as {
 
 // Create Prisma client only when needed, not during import
 function createPrismaClient() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL environment variable is not set");
-  }
-
   return new PrismaClient({ 
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
-      },
-    },
-    // Add connection pooling configuration for Vercel
-    __internal: {
-      engine: {
-        connectTimeout: 60000,
-        queryTimeout: 60000,
       },
     },
   });

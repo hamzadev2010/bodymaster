@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import db from "@/app/lib/db";
+import prisma from "@/app/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     }
 
     console.log("Fetching presence data from database...");
-    const presences = await db.presence.findMany({
+    const presences = await prisma.presence.findMany({
       where,
       include: { Client: true },
       orderBy: { time: "desc" },
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     if (isNaN(time.getTime())) return NextResponse.json({ error: "time invalide" }, { status: 400 });
 
     // ensure client exists
-    const client = await db.client.findUnique({ where: { id: clientId } });
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) return NextResponse.json({ error: "Client introuvable" }, { status: 404 });
 
     // 1) Prevent double check-in for the same person on the same day (UTC day)
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       const d = time.getUTCDate();
       const start = new Date(Date.UTC(y, m, d, 0, 0, 0));
       const end = new Date(Date.UTC(y, m, d + 1, 0, 0, 0));
-      const existingToday = await db.presence.findFirst({
+      const existingToday = await prisma.presence.findFirst({
         where: { clientid: clientId, time: { gte: start, lt: end }, isdeleted: false },
         select: { id: true },
       });
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
 
     // 2) Block check-in for clients who are not up to date on payments
     try {
-      const latestPayment = await db.payment.findFirst({
+      const latestPayment = await prisma.payment.findFirst({
         where: { clientid: clientId, deletedat: null },
         orderBy: { paymentdate: "desc" },
         select: { id: true, nextpaymentdate: true },
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       }
     } catch {}
 
-    const created = await db.presence.create({ data: { clientid: clientId, time } });
+    const created = await prisma.presence.create({ data: { clientid: clientId, time } });
     return NextResponse.json(created, { status: 201 });
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
