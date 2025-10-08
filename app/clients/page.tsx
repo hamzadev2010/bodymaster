@@ -147,9 +147,15 @@ export default function ClientsPage() {
       <RequireAuth>
         <main className="mx-auto max-w-6xl space-y-8 p-6">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
-              <div className="text-lg font-medium text-gray-700">Chargement des clients...</div>
+            <div className="flex flex-col items-center space-y-6">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-600 border-t-transparent absolute top-0 left-0"></div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-gray-800">Chargement des clients...</div>
+                <div className="text-sm text-gray-500 mt-1">Récupération des données en cours</div>
+              </div>
             </div>
           </div>
         </main>

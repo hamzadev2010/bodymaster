@@ -184,26 +184,20 @@ export default function PaymentsPage() {
           fetch("/api/promotions").catch(() => undefined),
         ]);
 
-        let cData: Client[] = [];
-        if (cRes && cRes.ok) {
-          try { cData = await cRes.json(); } catch { cData = []; }
-        }
+        // Process all responses in parallel for better performance
+        const [clientsData, paymentsData, promotionsData] = await Promise.all([
+          cRes?.ok ? cRes.json().catch(() => []) : Promise.resolve([]),
+          pRes?.ok ? pRes.json().catch(() => []) : Promise.resolve([]),
+          prRes?.ok ? prRes.json().catch(() => []) : Promise.resolve([]),
+        ]);
 
-        let pData: Payment[] = [];
-        if (pRes && pRes.ok) {
-          try { pData = await pRes.json(); } catch { pData = []; }
-        }
-
-        setClients(Array.isArray(cData) ? cData : []);
-        setPayments(Array.isArray(pData) ? pData : []);
-        if (prRes && prRes.ok) {
-          try {
-            const prData = await prRes.json();
-            setPromotions(Array.isArray(prData) ? prData.filter((p: Promotion) => p.active) : []);
-          } catch { setPromotions([]); }
-        } else {
-          setPromotions([]);
-        }
+        setClients(Array.isArray(clientsData) ? clientsData : []);
+        setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+        
+        const activePromotions = Array.isArray(promotionsData) 
+          ? promotionsData.filter((p: Promotion) => p.active) 
+          : [];
+        setPromotions(activePromotions);
       } catch {
         // en cas d'erreur réseau globale
         setClients([]);
@@ -427,9 +421,15 @@ export default function PaymentsPage() {
       <RequireAuth>
         <main className="mx-auto max-w-6xl space-y-8 p-6">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
-              <div className="text-lg font-medium text-gray-700">Chargement des paiements...</div>
+            <div className="flex flex-col items-center space-y-6">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-600 border-t-transparent absolute top-0 left-0"></div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-gray-800">Chargement des paiements...</div>
+                <div className="text-sm text-gray-500 mt-1">Récupération des données en cours</div>
+              </div>
             </div>
           </div>
         </main>

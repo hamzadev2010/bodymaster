@@ -33,7 +33,14 @@ export async function GET(request: Request) {
     const where = includeDeleted ? {} : { isdeleted: false };
     const payments = await prisma.payment.findMany({
       where,
-      include: { Client: true, Promotion: true },
+      include: { 
+        Client: { 
+          select: { id: true, fullname: true, firstname: true, lastname: true, email: true, phone: true, nationalid: true, dateofbirth: true, registrationdate: true }
+        }, 
+        Promotion: { 
+          select: { id: true, name: true, subscriptionmonths: true }
+        }
+      },
       orderBy: { createdat: "desc" },
       take: 100,
     });

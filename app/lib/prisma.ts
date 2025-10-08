@@ -21,6 +21,11 @@ function createPrismaClient() {
         url: process.env.DATABASE_URL,
       },
     },
+    // Performance optimizations
+    transactionOptions: {
+      maxWait: 5000, // 5 seconds
+      timeout: 10000, // 10 seconds
+    },
   });
 }
 

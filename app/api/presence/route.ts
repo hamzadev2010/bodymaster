@@ -40,19 +40,15 @@ export async function GET(request: Request) {
   if (start && end) where.time = { gte: start, lt: end };
 
   try {
-    // Check if database URL is available
-    if (!process.env.DATABASE_URL) {
-      console.error("DATABASE_URL environment variable is not set");
-      return NextResponse.json({ error: "Database configuration missing" }, { status: 503 });
-    }
-
-    console.log("Fetching presence data from database...");
     const presences = await prisma.presence.findMany({
       where,
-      include: { Client: true },
+      include: { 
+        Client: { 
+          select: { id: true, fullname: true, phone: true }
+        }
+      },
       orderBy: { time: "desc" },
     });
-    console.log(`Successfully fetched ${presences.length} presence entries`);
     return NextResponse.json(presences);
   } catch (e: unknown) {
     // Most common cause: database not migrated (table Presence missing)
@@ -100,7 +96,7 @@ export async function POST(request: Request) {
     // 2) Block check-in for clients who are not up to date on payments
     try {
       const latestPayment = await prisma.payment.findFirst({
-        where: { clientid: clientId, deletedat: null },
+        where: { clientid: clientId, isdeleted: false },
         orderBy: { paymentdate: "desc" },
         select: { id: true, nextpaymentdate: true },
       });

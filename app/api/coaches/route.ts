@@ -36,7 +36,26 @@ export async function GET() {
   try {
     const coaches = await prisma.coach.findMany({ 
       where: { isdeleted: false },
-      orderBy: { createdat: "desc" } 
+      orderBy: { createdat: "desc" },
+      select: {
+        id: true,
+        fullname: true,
+        specialty: true,
+        email: true,
+        phone: true,
+        notes: true,
+        dateofbirth: true,
+        nationalid: true,
+        registrationdate: true,
+        endofservicedate: true,
+        subscriptionperiod: true,
+        haspromotion: true,
+        promotionperiod: true,
+        createdat: true,
+        updatedat: true,
+        deletedat: true,
+        isdeleted: true
+      }
     });
     // Transform field names to match frontend expectations
     const transformedCoaches = coaches.map(coach => ({

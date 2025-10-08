@@ -52,14 +52,29 @@ export default function DashboardPage() {
           fetch("/api/coaches").catch(() => undefined),
           fetch("/api/presence").catch(() => undefined),
         ]);
-        if (cRes?.ok) setClients(await cRes.json());
-        if (pRes?.ok) setPayments(await pRes.json());
-        if (prRes?.ok) setPromotions(await prRes.json());
-        if (coRes?.ok) setCoaches(await coRes.json());
-        if (peRes?.ok) {
-          const arr = await peRes.json();
-          const mapped: PresenceEntry[] = Array.isArray(arr) ? arr.map((p: { id: number; clientId: number; time: string }) => ({ id: p.id, clientId: p.clientId, time: p.time })) : [];
+        // Process all responses in parallel
+        const [clientsData, paymentsData, promotionsData, coachesData, presenceData] = await Promise.all([
+          cRes?.ok ? cRes.json() : Promise.resolve([]),
+          pRes?.ok ? pRes.json() : Promise.resolve([]),
+          prRes?.ok ? prRes.json() : Promise.resolve([]),
+          coRes?.ok ? coRes.json() : Promise.resolve([]),
+          peRes?.ok ? peRes.json() : Promise.resolve([]),
+        ]);
+        
+        setClients(Array.isArray(clientsData) ? clientsData : []);
+        setPayments(Array.isArray(paymentsData) ? paymentsData : []);
+        setPromotions(Array.isArray(promotionsData) ? promotionsData : []);
+        setCoaches(Array.isArray(coachesData) ? coachesData : []);
+        
+        if (Array.isArray(presenceData)) {
+          const mapped: PresenceEntry[] = presenceData.map((p: { id: number; clientId: number; time: string }) => ({ 
+            id: p.id, 
+            clientId: p.clientId, 
+            time: p.time 
+          }));
           setPresence(mapped);
+        } else {
+          setPresence([]);
         }
       } finally {
         setLoading(false);
@@ -177,9 +192,15 @@ export default function DashboardPage() {
       <RequireAuth>
         <main className="space-y-6 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600"></div>
-              <div className="text-lg font-medium text-gray-700">Chargement du tableau de bord...</div>
+            <div className="flex flex-col items-center space-y-6">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-600 border-t-transparent absolute top-0 left-0"></div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-semibold text-gray-800">Chargement du tableau de bord...</div>
+                <div className="text-sm text-gray-500 mt-1">Récupération des données en cours</div>
+              </div>
             </div>
           </div>
         </main>

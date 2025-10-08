@@ -8,7 +8,21 @@ export async function GET() {
   try {
     const promotions = await prisma.promotion.findMany({ 
       where: { isdeleted: false },
-      orderBy: { createdat: "desc" } 
+      orderBy: { createdat: "desc" },
+      select: {
+        id: true,
+        name: true,
+        notes: true,
+        fixedprice: true,
+        subscriptionmonths: true,
+        startdate: true,
+        enddate: true,
+        active: true,
+        createdat: true,
+        updatedat: true,
+        deletedat: true,
+        isdeleted: true
+      }
     });
     const transformed = promotions.map((p) => ({
       id: p.id,
