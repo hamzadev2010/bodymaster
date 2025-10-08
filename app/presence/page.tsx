@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import RequireAuth from "@/app/lib/RequireAuth";
 import type { CSVData, CSVRow, CSVFormatter, CellFormatter } from "@/app/types";
 
-type Client = { id: number; fullName: string; phone?: string | null };
+type Client = { id: number; fullName: string; phone?: string | null; nationalId?: string | null };
 
 type PresenceEntry = {
   id: number;
@@ -92,13 +92,14 @@ export default function PresencePage() {
   }, [selectedDate]);
 
   const filtered = useMemo(() => {
-    const needle = q.toLowerCase().trim();
+    const needle = q.toLowerCase().trim().replace(/\s+/g, "");
     if (!needle) return clients;
     return clients.filter((c) => {
       const name = (c.fullName || "").toLowerCase();
-      const phone = (c.phone || "").replace(/\s+/g, "");
-      const cin = (c.nationalId || "").toLowerCase().replace(/\s+/g, "");
-      return name.includes(needle) || phone.includes(needle.replace(/\D/g, "")) || cin.includes(needle);
+      const phone = (c.phone || "").replace(/\s+/g, "").replace(/\D/g, "");
+      const cin = (c.nationalId || "").toLowerCase().replace(/\s+/g, "").replace(/\D/g, "");
+      const needleNumbers = needle.replace(/\D/g, "");
+      return name.includes(needle) || phone.includes(needleNumbers) || cin.includes(needleNumbers);
     });
   }, [clients, q]);
 
