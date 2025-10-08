@@ -80,8 +80,9 @@ export default function PresencePage() {
             .map((p: PresenceWithClient) => ({ id: p.id, clientId: p.clientId, clientName: p.client?.fullName || "", timeISO: p.time }));
           setEntries(mapped);
         } else {
-          const errorData = await res.json().catch(() => ({}));
-          setError(`Erreur ${res.status}: ${errorData.error || "Impossible de charger les présences."}`);
+          const errorData = await res?.json().catch(() => ({})) || {};
+          const status = res?.status || 500;
+          setError(`Erreur ${status}: ${errorData.error || "Impossible de charger les présences."}`);
         }
       } finally {
         setLoading(false);
