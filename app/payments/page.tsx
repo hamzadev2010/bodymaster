@@ -11,6 +11,8 @@ type Period = "MONTHLY" | "QUARTERLY" | "ANNUAL";
 type Client = {
   id: number;
   fullName: string;
+  email?: string | null;
+  phone?: string | null;
   subscriptionPeriod?: Period | null;
 };
 
