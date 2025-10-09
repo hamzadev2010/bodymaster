@@ -1,30 +1,23 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
+import { supabase } from "@/app/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const promotions = await prisma.promotion.findMany({ 
-      where: { isdeleted: false },
-      orderBy: { createdat: "desc" },
-      select: {
-        id: true,
-        name: true,
-        notes: true,
-        fixedprice: true,
-        subscriptionmonths: true,
-        startdate: true,
-        enddate: true,
-        active: true,
-        createdat: true,
-        updatedat: true,
-        deletedat: true,
-        isdeleted: true
-      }
-    });
-    const transformed = promotions.map((p) => ({
+    const { data: promotions, error } = await supabase
+      .from('promotion')
+      .select('*')
+      .eq('isdeleted', false)
+      .order('createdat', { ascending: false });
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    
+    const transformed = (promotions || []).map((p) => ({
       id: p.id,
       name: p.name,
       notes: p.notes ?? null,
@@ -37,6 +30,7 @@ export async function GET() {
       updatedAt: p.updatedat ?? null,
       deletedAt: p.deletedat ?? null,
     }));
+    
     return NextResponse.json(transformed);
   } catch (e: unknown) {
     console.error("GET /api/promotions error:", e);
@@ -67,31 +61,42 @@ export async function POST(request: Request) {
       endDate = ed;
     }
 
-    const subscriptionMonths = (data.subscriptionMonths !== undefined && data.subscriptionMonths !== null && data.subscriptionMonths !== "")
-      ? Number(data.subscriptionMonths)
-      : null;
-    if (subscriptionMonths !== null && (!Number.isInteger(subscriptionMonths) || subscriptionMonths <= 0)) {
-      return NextResponse.json({ error: "subscriptionMonths must be a positive integer" }, { status: 400 });
+    const promotionData: any = {
+      name,
+      notes: data.notes || null,
+      fixedprice: fixedPriceNum,
+      subscriptionmonths: data.subscriptionMonths || null,
+      startdate: startDate.toISOString(),
+      enddate: endDate?.toISOString(),
+      active: data.active ?? true,
+      createdat: new Date().toISOString(),
+      updatedat: new Date().toISOString(),
+      isdeleted: false,
+    };
+
+    const { data: created, error } = await supabase
+      .from('promotion')
+      .insert([promotionData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const created = await prisma.promotion.create({
-      data: {
-        name,
-        notes: data.notes?.toString().trim() ? data.notes.toString().trim() : null,
-        fixedprice: fixedPriceNum,
-        subscriptionmonths: subscriptionMonths,
-        startdate: startDate,
-        enddate: endDate,
-        active: data.active ?? true,
-      },
-    });
+    // Log to history
     try {
-      await prisma.promotionHistory.create({
-        data: { promotionid: created.id, action: "CREATE", changes: JSON.stringify(created) },
-      });
+      await supabase.from('promotionhistory').insert([{
+        promotionid: created.id,
+        action: "CREATE",
+        changes: JSON.stringify(created),
+        createdat: new Date().toISOString(),
+      }]);
     } catch (histErr) {
-      console.warn("POST /api/promotions history log failed:", histErr);
+      console.warn("History log failed:", histErr);
     }
+
     const transformed = {
       id: created.id,
       name: created.name,
@@ -105,6 +110,7 @@ export async function POST(request: Request) {
       updatedAt: created.updatedat ?? null,
       deletedAt: created.deletedat ?? null,
     } as const;
+    
     return NextResponse.json(transformed, { status: 201 });
   } catch (e: unknown) {
     console.error("POST /api/promotions error:", e);
@@ -122,13 +128,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "ID promotion invalide" }, { status: 400 });
     }
 
-    // Check if promotion exists and is not already deleted
-    const promotion = await prisma.promotion.findUnique({
-      where: { id: promotionId },
-      select: { id: true, name: true, isdeleted: true }
-    });
+    // Check if promotion exists
+    const { data: promotion, error: fetchError } = await supabase
+      .from('promotion')
+      .select('id, name, isdeleted')
+      .eq('id', promotionId)
+      .single();
 
-    if (!promotion) {
+    if (fetchError || !promotion) {
       return NextResponse.json({ error: "Promotion introuvable" }, { status: 404 });
     }
 
@@ -137,14 +144,18 @@ export async function DELETE(request: Request) {
     }
 
     // Soft delete the promotion
-    await prisma.promotion.update({
-      where: { id: promotionId },
-      data: {
+    const { error: updateError } = await supabase
+      .from('promotion')
+      .update({
         isdeleted: true,
-        deletedat: new Date(),
-        updatedat: new Date(),
-      },
-    });
+        deletedat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
+      })
+      .eq('id', promotionId);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true, message: "Promotion supprimée avec succès" });
   } catch (error: unknown) {

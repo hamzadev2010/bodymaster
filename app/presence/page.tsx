@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import RequireAuth from "@/app/lib/RequireAuth";
 import type { CSVData, CSVRow, CSVFormatter, CellFormatter } from "@/app/types";
+import { API_URL } from "@/app/lib/api";
 
 type Client = { id: number; fullName: string; phone?: string | null };
 
@@ -45,7 +46,7 @@ export default function PresencePage() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/clients");
+        const res = await fetch(`${API_URL}/clients.php`);
         if (res.ok) setClients(await res.json());
         else setError("Impossible de charger la liste des clients.");
       } catch {}
@@ -57,10 +58,10 @@ export default function PresencePage() {
     void (async () => {
       try {
         setLoading(true);
-        let res = await fetch(`/api/presence?date=${selectedDate}`).catch(() => undefined);
+        let res = await fetch(`${API_URL}/presence.php?date=${selectedDate}`).catch(() => undefined);
         if (!res || !res.ok) {
           // Fallback to default endpoint and filter client-side if needed
-          res = await fetch("/api/presence").catch(() => undefined);
+          res = await fetch(`${API_URL}/presence.php`).catch(() => undefined);
         }
         if (res && res.ok) {
           const list = await res.json();
@@ -96,7 +97,7 @@ export default function PresencePage() {
   async function checkIn(client: Client) {
     try {
       setError("");
-      const res = await fetch("/api/presence", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId: client.id }) });
+      const res = await fetch(`${API_URL}/presence.php`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId: client.id }) });
       if (res.ok) {
         const created = await res.json();
         const entry: PresenceEntry = { id: created.id, clientId: client.id, clientName: client.fullName, timeISO: created.time };
@@ -115,7 +116,7 @@ export default function PresencePage() {
     try {
       setError("");
       if (!confirm("Confirmer la suppression de ce pointage ?")) return;
-      const res = await fetch(`/api/presence/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/presence-detail.php?id=${id}`, { method: "DELETE" });
       if (res.ok) setEntries((prev) => prev.filter((e) => e.id !== id));
       else {
         const msg = await res.json().catch(()=>({ error: "Erreur inconnue" }));

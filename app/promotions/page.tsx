@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useCurrency } from "@/app/lib/CurrencyProvider";
 import RequireAuth from "@/app/lib/RequireAuth";
+import { API_URL } from "@/app/lib/api";
 
 type Promotion = {
   id: number;
@@ -44,7 +45,7 @@ export default function PromotionsPage() {
   const deletePromotion = async (promotionId: number) => {
     try {
       if (!confirm("Confirmer la suppression de cette promotion ?")) return;
-      const res = await fetch(`/api/promotions/${promotionId}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/promotions-detail.php?id=${promotionId}`, { method: "DELETE" });
       if (res.ok) setPromotions((prev) => prev.filter((p) => p.id !== promotionId));
       else {
         const msg = await res.json().catch(()=>({ error: "Erreur inconnue" }));
@@ -59,7 +60,7 @@ export default function PromotionsPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/promotions");
+        const res = await fetch(`${API_URL}/promotions.php`);
         if (!res.ok) {
           setPromotions([]);
           return;
@@ -81,7 +82,7 @@ export default function PromotionsPage() {
   async function save(values: Partial<Promotion>) {
     try {
       if (editing) {
-        const res = await fetch(`/api/promotions/${editing.id}`, {
+        const res = await fetch(`${API_URL}/promotions-detail.php?id=${editing.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(values),
@@ -93,7 +94,7 @@ export default function PromotionsPage() {
         const updated = await res.json();
         setPromotions((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       } else {
-        const res = await fetch(`/api/promotions`, {
+        const res = await fetch(`${API_URL}/promotions.php`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(values),

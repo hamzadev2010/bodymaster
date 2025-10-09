@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/app/i18n/I18nProvider";
 import { useCurrency } from "@/app/lib/CurrencyProvider";
 import RequireAuth from "@/app/lib/RequireAuth";
+import { API_URL } from "@/app/lib/api";
 
 type Payment = {
   id: number;
@@ -46,11 +47,11 @@ export default function DashboardPage() {
     void (async () => {
       try {
         const [cRes, pRes, prRes, coRes, peRes] = await Promise.all([
-          fetch("/api/clients").catch(() => undefined),
-          fetch("/api/payments").catch(() => undefined),
-          fetch("/api/promotions").catch(() => undefined),
-          fetch("/api/coaches").catch(() => undefined),
-          fetch("/api/presence").catch(() => undefined),
+          fetch(`${API_URL}/clients.php`).catch(() => undefined),
+          fetch(`${API_URL}/payments.php`).catch(() => undefined),
+          fetch(`${API_URL}/promotions.php`).catch(() => undefined),
+          fetch(`${API_URL}/coaches.php`).catch(() => undefined),
+          fetch(`${API_URL}/presence.php`).catch(() => undefined),
         ]);
         // Process all responses in parallel
         const [clientsData, paymentsData, promotionsData, coachesData, presenceData] = await Promise.all([

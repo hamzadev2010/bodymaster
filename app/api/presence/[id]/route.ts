@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
+import { supabase } from "@/app/lib/supabase";
 
-// Vercel-compatible configuration
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const fetchCache = "force-no-store";
-
-// Lazy import Prisma to avoid build-time initialization
-async function getPrisma() {
-  const { default: prisma } = await import("@/app/lib/prisma");
-  return prisma;
-}
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,11 +11,18 @@ export async function GET(_req: Request, { params }: Params) {
   try {
     const { id: idStr } = await params;
     const id = Number(idStr);
-    const prisma = await getPrisma();
-    const presence = await prisma.presence.findUnique({ 
-      where: { id, isdeleted: false } 
-    });
-    if (!presence) return NextResponse.json({ message: "Not found" }, { status: 404 });
+    
+    const { data: presence, error } = await supabase
+      .from('presence')
+      .select('*')
+      .eq('id', id)
+      .eq('isdeleted', false)
+      .single();
+    
+    if (error || !presence) {
+      return NextResponse.json({ message: "Not found" }, { status: 404 });
+    }
+    
     return NextResponse.json(presence);
   } catch (error) {
     console.error("Error fetching presence:", error);
@@ -33,16 +34,19 @@ export async function DELETE(_req: Request, { params }: Params) {
   try {
     const { id: idStr } = await params;
     const id = Number(idStr);
-    if (!id || !Number.isFinite(id)) return NextResponse.json({ error: "id invalide" }, { status: 400 });
-    const prisma = await getPrisma();
     
-    // Check if presence exists and is not already deleted
-    const presence = await prisma.presence.findUnique({
-      where: { id },
-      select: { id: true, isdeleted: true }
-    });
+    if (!id || isNaN(id)) {
+      return NextResponse.json({ error: "id invalide" }, { status: 400 });
+    }
 
-    if (!presence) {
+    // Check if presence exists and is not already deleted
+    const { data: presence, error: fetchError } = await supabase
+      .from('presence')
+      .select('id, isdeleted')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !presence) {
       return NextResponse.json({ error: "Pointage introuvable" }, { status: 404 });
     }
 
@@ -51,13 +55,17 @@ export async function DELETE(_req: Request, { params }: Params) {
     }
 
     // Soft delete the presence
-    await prisma.presence.update({
-      where: { id },
-      data: {
+    const { error: updateError } = await supabase
+      .from('presence')
+      .update({
         isdeleted: true,
-        deletedat: new Date(),
-      },
-    });
+        deletedat: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (e: unknown) {

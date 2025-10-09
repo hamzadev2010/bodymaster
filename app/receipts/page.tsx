@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/app/i18n/I18nProvider";
 import { useCurrency } from "@/app/lib/CurrencyProvider";
 import RequireAuth from "@/app/lib/RequireAuth";
+import { API_URL } from "@/app/lib/api";
 
 type Period = "MONTHLY" | "QUARTERLY" | "ANNUAL";
 
@@ -102,8 +103,8 @@ export default function ReceiptsPage() {
   useEffect(() => {
     void (async () => {
       const [pRes, cRes] = await Promise.all([
-        fetch("/api/payments").catch(() => undefined),
-        fetch("/api/clients").catch(() => undefined),
+        fetch(`${API_URL}/payments.php`).catch(() => undefined),
+        fetch(`${API_URL}/clients.php`).catch(() => undefined),
       ]);
       if (pRes?.ok) setPayments(await pRes.json());
       if (cRes?.ok) setClients(await cRes.json());

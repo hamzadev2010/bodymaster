@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import RequireAuth from "@/app/lib/RequireAuth";
 import { useI18n } from "@/app/i18n/I18nProvider";
 import { useCurrency } from "@/app/lib/CurrencyProvider";
+import { API_URL } from "@/app/lib/api";
 
 type Period = "MONTHLY" | "QUARTERLY" | "ANNUAL";
 
@@ -147,7 +148,7 @@ export default function PaymentsPage() {
   const deletePayment = async (paymentId: number) => {
     try {
       if (!confirm("Confirmer la suppression de ce paiement ?")) return;
-      const res = await fetch(`/api/payments/${paymentId}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/payments-detail.php?id=${paymentId}`, { method: "DELETE" });
       if (res.ok) setPayments((prev) => prev.filter((p) => p.id !== paymentId));
       else {
         const msg = await res.json().catch(()=>({ error: "Erreur inconnue" }));
@@ -179,9 +180,9 @@ export default function PaymentsPage() {
     void (async () => {
       try {
         const [cRes, pRes, prRes] = await Promise.all([
-          fetch("/api/clients").catch(() => undefined),
-          fetch("/api/payments").catch(() => undefined),
-          fetch("/api/promotions").catch(() => undefined),
+          fetch(`${API_URL}/clients.php`).catch(() => undefined),
+          fetch(`${API_URL}/payments.php`).catch(() => undefined),
+          fetch(`${API_URL}/promotions.php`).catch(() => undefined),
         ]);
 
         // Process all responses in parallel for better performance
@@ -309,7 +310,7 @@ export default function PaymentsPage() {
     if (!confirm(message)) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/payments", {
+      const res = await fetch(`${API_URL}/payments.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -346,7 +347,7 @@ export default function PaymentsPage() {
   async function updatePayment(values: Partial<Payment>) {
     if (!editing) return;
     try {
-      const res = await fetch(`/api/payments/${editing.id}`, {
+      const res = await fetch(`${API_URL}/payments-detail.php?id=${editing.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -366,7 +367,7 @@ export default function PaymentsPage() {
 
   async function _removePayment(id: number) {
     if (!confirm("Confirmer la suppression de ce paiement ?")) return;
-    const res = await fetch(`/api/payments/${id}`, { method: "DELETE" });
+    const res = await fetch(`${API_URL}/payments-detail.php?id=${id}`, { method: "DELETE" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       alert(err?.error || `HTTP ${res.status}`);
@@ -561,7 +562,7 @@ export default function PaymentsPage() {
                   <li key={c.id} className="flex items-center justify-between py-2">
                     <div className="text-sm">
                       <p className="font-medium text-gray-900 flex items-center gap-2">
-                        {(c as any).fullname}
+                        {c.fullName || (c as any).fullname}
                         {(() => {
                           const arr = perClientPayments.get(c.id) || [];
                           if (arr.length === 0) return <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">Sans paiement</span>;
@@ -594,10 +595,23 @@ export default function PaymentsPage() {
                       </p>
                     </div>
                     <button
-                      className={`rounded-md border px-2 py-1 text-xs ${clientId === c.id ? 'bg-blue-50 border-blue-200 text-blue-700' : 'hover:bg-gray-50'}`}
-                      onClick={() => setClientId(c.id)}
+                      className={`rounded-md border px-2 py-1 text-xs ${clientId === c.id ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100' : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100'}`}
+                      onClick={() => {
+                        if (clientId === c.id) {
+                          setClientId("");
+                          setSubscriptionPeriod("MONTHLY");
+                        } else {
+                          setClientId(c.id);
+                          const selectedClient = clients.find(cc => cc.id === c.id);
+                          if (selectedClient && (selectedClient as any).subscriptionperiod) {
+                            setSubscriptionPeriod((selectedClient as any).subscriptionperiod);
+                          } else {
+                            setSubscriptionPeriod("MONTHLY");
+                          }
+                        }
+                      }}
                     >
-                      {clientId === c.id ? 'Sélectionné' : 'Choisir'}
+                      {clientId === c.id ? 'Désélectionner' : 'Choisir'}
                     </button>
                   </li>
                 ))}
@@ -628,10 +642,33 @@ export default function PaymentsPage() {
       </section>
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Nouveau paiement</h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900">Nouveau paiement</h2>
+          {clientId && (
+            <div className="rounded-lg bg-blue-50 px-3 py-1.5 border border-blue-200">
+              <span className="text-sm font-medium text-blue-800">
+                Client: {clients.find(c => c.id === clientId)?.fullName || (clients.find(c => c.id === clientId) as any)?.fullname || `ID #${clientId}`}
+              </span>
+            </div>
+          )}
+        </div>
         <form onSubmit={submit} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="text-sm">
-            <span className="mb-1 block text-sm font-semibold label-title">Client</span>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-sm font-semibold label-title">Client</span>
+              {clientId && (
+                <button 
+                  type="button"
+                  className="text-xs text-red-600 hover:text-red-800 underline"
+                  onClick={() => {
+                    setClientId("");
+                    setSubscriptionPeriod("MONTHLY");
+                  }}
+                >
+                  Désélectionner
+                </button>
+              )}
+            </div>
             <select
               className="w-full rounded-md border border-neutral-300 px-3 py-2 text-gray-900 disabled:bg-neutral-100 disabled:text-neutral-400"
               value={clientId.toString()}
@@ -648,11 +685,24 @@ export default function PaymentsPage() {
               }}
               required
             >
-              <option value="">Choisir un client…</option>
+              <option value="">— Choisir un client —</option>
               {clients.map((c) => (
-                <option key={c.id} value={c.id}>{(c as any).fullname}</option>
+                <option key={c.id} value={c.id}>
+                  {c.fullName || (c as any).fullname} (#{c.id})
+                </option>
               ))}
             </select>
+            {clientId && (
+              <div className="mt-2 rounded-md bg-green-50 border border-green-200 px-3 py-2">
+                <div className="text-sm font-semibold text-green-800">
+                  ✓ Client sélectionné: {clients.find(c => c.id === clientId)?.fullName || (clients.find(c => c.id === clientId) as any)?.fullname}
+                </div>
+                <div className="text-xs text-green-600 mt-1">
+                  Email: {clients.find(c => c.id === clientId)?.email || "—"} • 
+                  Tél: {clients.find(c => c.id === clientId)?.phone || "—"}
+                </div>
+              </div>
+            )}
           </label>
 
           <label className="text-sm">

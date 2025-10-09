@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import RequireAuth from "@/app/lib/RequireAuth";
+import { API_URL } from "@/app/lib/api";
 
 type Client = {
   id: number;
@@ -55,7 +56,7 @@ export default function ClientsPage() {
   const deleteClient = async (clientId: number) => {
     try {
       if (!confirm("Confirmer la suppression de ce client ?")) return;
-      const res = await fetch(`/api/clients/${clientId}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/clients-detail.php?id=${clientId}`, { method: "DELETE" });
       if (res.ok) setClients((prev) => prev.filter((c) => c.id !== clientId));
       else {
         const msg = await res.json().catch(()=>({ error: "Erreur inconnue" }));
@@ -71,8 +72,8 @@ export default function ClientsPage() {
     void (async () => {
       try {
         const [cRes, pRes] = await Promise.all([
-          fetch("/api/clients").catch(() => undefined),
-          fetch("/api/payments").catch(() => undefined),
+          fetch(`${API_URL}/clients.php`).catch(() => undefined),
+          fetch(`${API_URL}/payments.php`).catch(() => undefined),
         ]);
         
         if (cRes?.ok) {
@@ -103,7 +104,7 @@ export default function ClientsPage() {
   async function save(values: Partial<Client>) {
     try {
       if (editing) {
-        const res = await fetch(`/api/clients/${editing.id}`, {
+        const res = await fetch(`${API_URL}/clients-detail.php?id=${editing.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(values),
@@ -116,7 +117,7 @@ export default function ClientsPage() {
         const updated = await res.json();
         setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       } else {
-        const res = await fetch(`/api/clients`, {
+        const res = await fetch(`${API_URL}/clients.php`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(values),

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import RequireAuth from "@/app/lib/RequireAuth";
 import { useI18n } from "@/app/i18n/I18nProvider";
+import { API_URL } from "@/app/lib/api";
 
 type Coach = {
   id: number;
@@ -47,7 +48,7 @@ export default function CoachesPage() {
   const deleteCoach = async (coachId: number) => {
     try {
       if (!confirm("Confirmer la suppression de ce coach ?")) return;
-      const res = await fetch(`/api/coaches/${coachId}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/coaches-detail.php?id=${coachId}`, { method: "DELETE" });
       if (res.ok) setCoaches((prev) => prev.filter((c) => c.id !== coachId));
       else {
         const msg = await res.json().catch(()=>({ error: "Erreur inconnue" }));
@@ -62,7 +63,7 @@ export default function CoachesPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/coaches");
+        const res = await fetch(`${API_URL}/coaches.php`);
         if (res.ok) {
           const data = await res.json();
           setCoaches(data);
@@ -82,7 +83,7 @@ export default function CoachesPage() {
   async function save(values: Partial<Coach>) {
     try {
       if (editing) {
-        const res = await fetch(`/api/coaches/${editing.id}`, {
+        const res = await fetch(`${API_URL}/coaches-detail.php?id=${editing.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(values),
@@ -95,7 +96,7 @@ export default function CoachesPage() {
         const updated = await res.json();
         setCoaches((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       } else {
-        const res = await fetch(`/api/coaches`, {
+        const res = await fetch(`${API_URL}/coaches.php`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(values),
@@ -118,7 +119,7 @@ export default function CoachesPage() {
 
   async function _remove(id: number) {
     if (!confirm("Confirmer la suppression de ce coach ?")) return;
-    await fetch(`/api/coaches/${id}`, { method: "DELETE" });
+    await fetch(`${API_URL}/coaches-detail.php?id=${id}`, { method: "DELETE" });
     setCoaches((prev) => prev.filter((c) => c.id !== id));
   }
 

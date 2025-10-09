@@ -1,30 +1,9 @@
 import { NextResponse } from "next/server";
-import prisma from "@/app/lib/prisma";
-import type { DateInput } from "@/app/types";
+import { supabase } from "@/app/lib/supabase";
 
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const dynamic = 'force-dynamic';
 
-function parseDateLoose(input: DateInput): Date | null {
-  if (!input) return null;
-  try {
-    const raw = String(input).trim();
-    if (!raw) return null;
-    const m1 = raw.match(/^([0-3]?\d)\/([0-1]?\d)\/(\d{4})$/);
-    if (m1) {
-      const [_match, d, m, y] = m1;
-      const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      const dt = new Date(iso);
-      return isNaN(dt.getTime()) ? null : dt;
-    }
-    const dt = new Date(raw);
-    return isNaN(dt.getTime()) ? null : dt;
-  } catch {
-    return null;
-  }
-}
-
-// Top-level sanitize helper
 function sanitize(input: unknown, { max = 120, pattern }: { max?: number; pattern?: RegExp } = {}) {
   let s = (input ?? "").toString().replace(/[<>]/g, "").trim();
   if (max && s.length > max) s = s.slice(0, max);
@@ -34,31 +13,19 @@ function sanitize(input: unknown, { max = 120, pattern }: { max?: number; patter
 
 export async function GET() {
   try {
-    const coaches = await prisma.coach.findMany({ 
-      where: { isdeleted: false },
-      orderBy: { createdat: "desc" },
-      select: {
-        id: true,
-        fullname: true,
-        specialty: true,
-        email: true,
-        phone: true,
-        notes: true,
-        dateofbirth: true,
-        nationalid: true,
-        registrationdate: true,
-        endofservicedate: true,
-        subscriptionperiod: true,
-        haspromotion: true,
-        promotionperiod: true,
-        createdat: true,
-        updatedat: true,
-        deletedat: true,
-        isdeleted: true
-      }
-    });
+    const { data: coaches, error } = await supabase
+      .from('coach')
+      .select('*')
+      .eq('isdeleted', false)
+      .order('createdat', { ascending: false });
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    
     // Transform field names to match frontend expectations
-    const transformedCoaches = coaches.map(coach => ({
+    const transformedCoaches = (coaches || []).map(coach => ({
       ...coach,
       fullName: coach.fullname,
       dateOfBirth: coach.dateofbirth,
@@ -68,63 +35,99 @@ export async function GET() {
       createdAt: coach.createdat,
       updatedAt: coach.updatedat,
     }));
+    
     return NextResponse.json(transformedCoaches);
   } catch (error) {
     console.error('GET /api/coaches error:', error);
-    return NextResponse.json({ error: "Database connection error" }, { status: 503 });
+    const errorMessage = error instanceof Error ? error.message : "Server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const fullName = sanitize(data.fullName, { max: 80, pattern: /^[A-Za-zÀ-ÖØ-öø-ÿ'\-\s]+$/ }) || "";
-    if (!fullName) {
-      return NextResponse.json({ error: "Le nom complet est requis" }, { status: 400 });
+    
+    const fullName = sanitize(data.fullName, { max: 80, pattern: /^[A-ZÀ-ÖØ-Þ'\-\s]+$/ });
+    if (!fullName) return NextResponse.json({ error: "fullName required (uppercase letters only)" }, { status: 400 });
+    
+    const specialty = sanitize(data.specialty, { max: 100 });
+    const email = sanitize(data.email, { max: 100 });
+    const phone = sanitize(data.phone, { max: 20 });
+    const notes = sanitize(data.notes, { max: 500 });
+    const nationalId = sanitize(data.nationalId, { max: 20 });
+    
+    let dateOfBirth: Date | null = null;
+    if (data.dateOfBirth) {
+      const dob = new Date(data.dateOfBirth);
+      if (!isNaN(dob.getTime())) dateOfBirth = dob;
     }
-    const email = sanitize(data.email, { max: 120 })?.toLowerCase() || null;
-    const specialty = sanitize(data.specialty, { max: 80 });
-    const phoneRaw = (data.phone ?? "").toString();
-    const phone = phoneRaw ? phoneRaw.replace(/[^0-9+]/g, "").slice(0, 12) : null;
-    const notes = sanitize(data.notes, { max: 120 });
-    const nationalId = sanitize(data.nationalId, { max: 30, pattern: /^[A-Za-z0-9]+$/ });
-    const payload = {
+    
+    let endOfServiceDate: Date | null = null;
+    if (data.endOfServiceDate) {
+      const eosd = new Date(data.endOfServiceDate);
+      if (!isNaN(eosd.getTime())) endOfServiceDate = eosd;
+    }
+    
+    const coachData: any = {
       fullname: fullName,
       specialty,
       email,
       phone,
       notes,
-      dateofbirth: parseDateLoose(data.dateOfBirth),
-      nationalid: nationalId ? nationalId.toUpperCase() : null,
-      registrationdate: parseDateLoose(data.registrationDate) || undefined,
-      endofservicedate: parseDateLoose(data.endOfServiceDate) || null,
-      subscriptionperiod: data.subscriptionPeriod ?? null,
+      nationalid: nationalId,
+      dateofbirth: dateOfBirth?.toISOString(),
+      registrationdate: new Date().toISOString(),
+      endofservicedate: endOfServiceDate?.toISOString(),
+      subscriptionperiod: data.subscriptionPeriod || null,
       haspromotion: Boolean(data.hasPromotion),
-      promotionperiod: data.promotionPeriod ?? null,
-    } as const;
-
-    try {
-      const created = await prisma.coach.create({ data: payload });
-      try {
-        await prisma.coachHistory.create({
-          data: { coachid: created.id, action: "CREATE", changes: JSON.stringify(created) },
-        });
-      } catch (histErr) {
-        console.warn("POST /api/coaches history log failed:", histErr);
-      }
-      return NextResponse.json(created, { status: 201 });
-    } catch (e: unknown) {
-      if (e && typeof e === 'object' && 'code' in e && e.code === "P2002" && 
-          'meta' in e && e.meta && typeof e.meta === 'object' && 'target' in e.meta && 
-          Array.isArray(e.meta.target) && e.meta.target.includes("email")) {
+      promotionperiod: data.promotionPeriod || null,
+      createdat: new Date().toISOString(),
+      updatedat: new Date().toISOString(),
+      isdeleted: false,
+    };
+    
+    const { data: created, error } = await supabase
+      .from('coach')
+      .insert([coachData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      if (error.code === '23505') {
         return NextResponse.json({ error: "Cet email est déjà utilisé" }, { status: 409 });
       }
-      console.error("POST /api/coaches error:", e);
-      const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
+    
+    // Log to history
+    try {
+      await supabase.from('coachhistory').insert([{
+        coachid: created.id,
+        action: "CREATE",
+        changes: JSON.stringify(created),
+        createdat: new Date().toISOString(),
+      }]);
+    } catch (histErr) {
+      console.warn("History log failed:", histErr);
+    }
+    
+    const transformed = {
+      ...created,
+      fullName: created.fullname,
+      dateOfBirth: created.dateofbirth,
+      nationalId: created.nationalid,
+      registrationDate: created.registrationdate,
+      endOfServiceDate: created.endofservicedate,
+      createdAt: created.createdat,
+      updatedAt: created.updatedat,
+    };
+    
+    return NextResponse.json(transformed, { status: 201 });
   } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : "Erreur serveur";
+    console.error("POST /api/coaches error:", e);
+    const errorMessage = e instanceof Error ? e.message : "Server error";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
@@ -138,13 +141,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "ID coach invalide" }, { status: 400 });
     }
 
-    // Check if coach exists and is not already deleted
-    const coach = await prisma.coach.findUnique({
-      where: { id: coachId },
-      select: { id: true, fullname: true, isdeleted: true }
-    });
+    // Check if coach exists
+    const { data: coach, error: fetchError } = await supabase
+      .from('coach')
+      .select('id, fullname, isdeleted')
+      .eq('id', coachId)
+      .single();
 
-    if (!coach) {
+    if (fetchError || !coach) {
       return NextResponse.json({ error: "Coach introuvable" }, { status: 404 });
     }
 
@@ -153,26 +157,29 @@ export async function DELETE(request: Request) {
     }
 
     // Soft delete the coach
-    const updated = await prisma.coach.update({
-      where: { id: coachId },
-      data: {
+    const { error: updateError } = await supabase
+      .from('coach')
+      .update({
         isdeleted: true,
-        deletedat: new Date(),
-        updatedat: new Date(),
-      },
-    });
+        deletedat: new Date().toISOString(),
+        updatedat: new Date().toISOString(),
+      })
+      .eq('id', coachId);
 
-    // Log the deletion in history
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+
+    // Log the deletion
     try {
-      await prisma.coachHistory.create({
-        data: { 
-          coachid: coachId, 
-          action: "DELETE", 
-          changes: JSON.stringify({ fullname: coach.fullname, deletedat: updated.deletedat })
-        },
-      });
+      await supabase.from('coachhistory').insert([{
+        coachid: coachId,
+        action: "DELETE",
+        changes: JSON.stringify({ fullname: coach.fullname, deletedat: new Date().toISOString() }),
+        createdat: new Date().toISOString(),
+      }]);
     } catch (histErr) {
-      console.warn("DELETE /api/coaches history log failed:", histErr);
+      console.warn("History log failed:", histErr);
     }
 
     return NextResponse.json({ success: true, message: "Coach supprimé avec succès" });
@@ -181,4 +188,3 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
