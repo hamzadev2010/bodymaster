@@ -261,12 +261,25 @@ export default function ClientsPage() {
                 return (
                   <li key={c.id} className={`flex items-center justify-between py-3`}>
                     <div>
-                      <p className="font-medium text-gray-900">#{c.id} — {(c as any).fullname}</p>
+                      <p className="font-medium text-gray-900">#{c.id} — {c.fullName || (c as any).fullname || "Client sans nom"}</p>
                       <p className="text-xs text-gray-500">{c.email || "—"} · {c.phone || "—"}</p>
                       <div className="mt-1">{statusEl}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50" onClick={() => setOpenDetail(c)}>Détails</button>
+                      <button className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50" onClick={async () => {
+                        // Fetch full client details from API
+                        try {
+                          const res = await fetch(`${API_URL}/clients-detail.php?id=${c.id}`);
+                          if (res.ok) {
+                            const fullClient = await res.json();
+                            setOpenDetail(fullClient);
+                          } else {
+                            setOpenDetail(c); // Fallback to list data
+                          }
+                        } catch {
+                          setOpenDetail(c); // Fallback to list data
+                        }
+                      }}>Détails</button>
                       <button className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50" onClick={() => { setEditing(c); setOpen(true); }}>Modifier</button>
                       <button className="rounded-md border border-red-300 bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100" onClick={() => deleteClient(c.id)}>Supprimer</button>
                     </div>
