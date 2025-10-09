@@ -2,12 +2,13 @@
     "name": "body-master-next",
     "version": "0.1.0",
     "private": true,
-    "scripts": {
-      "dev": "next dev",
-      "build": "next build",
-      "start": "next start",
-      "lint": "eslint"
-    },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "vercel-build": "next build"
+  },
     "dependencies": {
       "@supabase/supabase-js": "^2.47.14",
       "next": "14.2.18",
