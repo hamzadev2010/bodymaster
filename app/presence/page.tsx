@@ -297,21 +297,6 @@ export default function PresencePage() {
     XLSX.writeFile(wb, `BODYMASTER_Presence_${selectedDate}.xlsx`);
   }, [entries, selectedDate]);
 
-  // Auto-download CSV once per day (today) on first visit
-  useEffect(() => {
-    try {
-      const today = new Date().toISOString().slice(0,10);
-      const key = `presence.autodownload.${today}`;
-      if (!localStorage.getItem(key)) {
-        // Only auto-download for today's date to avoid surprising past fetches
-        if (selectedDate === today && entries.length > 0) {
-          exportCSV();
-          localStorage.setItem(key, "1");
-        }
-      }
-    } catch {}
-  }, [selectedDate, entries.length, exportCSV]);
-
   if (initialLoading) {
     return (
       <RequireAuth>
