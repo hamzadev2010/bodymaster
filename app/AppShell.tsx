@@ -3,13 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { I18nProvider, useI18n } from "@/app/i18n/I18nProvider";
-import { languages } from "@/app/i18n/config";
 import { CurrencyProvider, useCurrency } from "@/app/lib/CurrencyProvider";
 import LoadingSpinner from "@/app/components/LoadingSpinner";
 import Image from "next/image";
 
 function Nav() {
-  const { t, lang, setLang, dir } = useI18n();
+  const { t } = useI18n();
   const { currency, setCurrency } = useCurrency();
   const [loading, setLoading] = useState(false);
   // Use SSR-stable initial values to avoid hydration mismatch
@@ -116,17 +115,6 @@ function Nav() {
               <option value="MAD">MAD</option>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
-            </select>
-            <select
-              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
-              value={lang}
-              onChange={(e) => setLang(e.target.value as "en" | "fr" | "ar")}
-              dir={dir}
-              aria-label="Language"
-            >
-              {languages.map((l) => (
-                <option key={l.code} value={l.code}>{l.label}</option>
-              ))}
             </select>
             <button
               className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-50"

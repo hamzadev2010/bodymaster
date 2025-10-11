@@ -190,7 +190,7 @@ export default function PromotionsPage() {
       </section>
 
       <Modal open={open} title={editing ? "Modifier promotion" : "Ajouter promotion"} onClose={() => { setOpen(false); setEditing(null); }}>
-        <PromotionForm initial={editing ?? undefined} onSubmit={save} />
+        <PromotionForm initial={editing ?? undefined} onSubmit={save} onCancel={() => { setOpen(false); setEditing(null); }} />
       </Modal>
     </main>
     </RequireAuth>
@@ -219,7 +219,7 @@ function Actions({ onCancel }: { onCancel: () => void }) {
   );
 }
 
-function PromotionForm({ initial, onSubmit }: { initial?: Partial<Promotion>; onSubmit: (values: Partial<Promotion>) => void }) {
+function PromotionForm({ initial, onSubmit, onCancel }: { initial?: Partial<Promotion>; onSubmit: (values: Partial<Promotion>) => void; onCancel: () => void }) {
   const [values, setValues] = useState<Partial<Promotion>>({
     name: initial?.name ?? "",
     notes: initial?.notes ?? "",
@@ -278,7 +278,7 @@ function PromotionForm({ initial, onSubmit }: { initial?: Partial<Promotion>; on
           <input className="w-full rounded-md border px-3 py-2" value={(values.notes as string) || ""} onChange={(e) => setValues((v) => ({ ...v, notes: e.target.value }))} />
         </Field>
       </Row>
-      <Actions onCancel={() => history.back()} />
+      <Actions onCancel={onCancel} />
     </form>
   );
 }

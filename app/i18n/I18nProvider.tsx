@@ -2,11 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { defaultLang, languages, type Lang } from "@/app/i18n/config";
-import en from "@/app/i18n/strings/en.json";
 import fr from "@/app/i18n/strings/fr.json";
-import ar from "@/app/i18n/strings/ar.json";
 
-const dict: Record<Lang, Record<string, string>> = { en, fr, ar } as const;
+const dict: Record<Lang, Record<string, string>> = { fr } as const;
 
 type I18nCtx = {
   lang: Lang;

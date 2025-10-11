@@ -3,8 +3,11 @@ import "./globals.css";
 import AppShell from "@/app/AppShell";
 
 export const metadata: Metadata = {
-  title: "BODY MASTER — Gestion",
-  description: "Gestion des Clients, Coachs et Promotions",
+  title: "BODYMASTER — Gestion de Salle de Sport",
+  description: "Gestion des Clients, Coachs, Promotions, Paiements et Présence",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
