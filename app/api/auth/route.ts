@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       // For example, check against hardcoded credentials or call your PHP API
       
       // Simple check (customize this):
-      if (username === "admin" && password === "admin123") {
+      if (username === "user" && password === "user1999") {
         return NextResponse.json({ success: true, user: username });
       }
       
