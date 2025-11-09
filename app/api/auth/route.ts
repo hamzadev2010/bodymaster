@@ -7,19 +7,18 @@ export async function POST(request: Request) {
     const data = await request.json();
     const { username, password } = data;
 
-    // Simple authentication - you can customize this
-    // For now, accept any non-empty username and password
+    // Only allow specific credentials
     if (username && password) {
-      // You can add your own authentication logic here
-      // For example, check against hardcoded credentials or call your PHP API
-      
-      // Simple check (customize this):
-      if (username === "user" && password === "user1999") {
+      // Check for valid credentials:
+      // 1. username "user" with password "user1999"
+      // 2. username "user1999" with password "user1999"
+      if ((username === "user" && password === "user1999") || 
+          (username === "user1999" && password === "user1999")) {
         return NextResponse.json({ success: true, user: username });
       }
       
-      // Or allow any login for development:
-      return NextResponse.json({ success: true, user: username });
+      // Reject all other credentials
+      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
